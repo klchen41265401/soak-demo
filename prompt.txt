@@ -1,0 +1,23 @@
+我要請你幫我做 ui 不用正式的業務邏輯
+用 react 然後看能不能用多點本來就有的套件實作
+
+
+""C:\Users\merma\Desktop\Soak demo\ux模擬頁面\Frame 16.png""
+是整體 MDP Line 的俯視圖，這是實際模擬 RFID tag 在產線流動的重點，裡面有 runcard number (RC-202606301 等等，這設計程式可以拖動到 Signin/IQC 等等區域，首先 runcard 要 signin，我希望可以拖動到 signin 之後，runcard border 會多一層 signin 本身區塊的顏色 (表示signin)，拖動到 IQC 就套另外一個顏色上去 (可疊加 signin 的顏色)，套完顏色就可以放入 soak bench內 tank a runcard 的綠色區塊
+"C:\Users\merma\Desktop\Soak demo\ux模擬頁面\Frame 16.png" 我忘記準備一個 "酸種號碼"，可以拖動到 Acid/PW (PW 就是超純水) 的區域，這樣就代表把酸倒入這個 Tank A/B，然後要跟 runcard 本身酸種配合才能夠使用，假設 tank 套用的是PW，那就是要泡過酸才能拖動進去倒入水的 TANK
+Runcard 本身要套甚麼酸我覺得你等下幫我我想一下該如何加比較好，就是本身含有的酸要跟 tank 吻合才能夠放進去
+最後流程結束可以把 runcard 放入 HPW 就結束了，所有的標示和 border 都要解除
+
+""C:\Users\merma\Desktop\Soak demo\現場作業螢幕畫面"" 這底下是要放在 tank 前的螢幕顯示讓作業人員知道零件目前狀態
+雖然我化的 ui 很簡便，不過就是用
+另外還有排班要在 runcard 已經套完 IQC 和signin 之後才會自動提示請某個 runcard 放進來這個 tank 
+當然如果倒數中被拿出來就要顯示異常 (從""C:\Users\merma\Desktop\Soak demo\ux模擬頁面\Frame 16.png""被抓出來到別的地方的時候)或是請取出，就是在 """C:\Users\merma\Desktop\Soak demo\ux模擬頁面\Frame 16.png""" 頁面取出
+
+""C:\Users\merma\Desktop\Soak demo\監控參考畫面\ACID_RFID_UI\acid_soak_monitor.html""這個是在監控的地方看
+頁面UI就這樣呈現吧
+
+所有的頁面中英文都要
+然後 prop 都是互丟的
+另外要有個重製按鈕 按一下所有的頁面prop都要重置到最原始的狀態
+
+

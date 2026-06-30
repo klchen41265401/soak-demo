@@ -1,0 +1,181 @@
+import { useStore, useT, COLORS, ALL_LIQUIDS, PW, scheduledRuncardFor } from '../store.jsx'
+import { Droppable, RuncardChip, AcidChip, TankAcidBottle } from '../components/dnd.jsx'
+
+const fmt = (s) => {
+  if (s == null) return '--:--'
+  s = Math.max(0, Math.round(s))
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
+}
+
+export default function LinePage() {
+  const { state } = useStore()
+  const { t } = useT()
+  const bench = state.benches.SB1
+  const at = (loc) => state.order.map((id) => state.runcards[id]).filter((r) => r.location === loc)
+  const poolCards = at('pool')
+  const hpwCards = at('hpw')
+  const signinCards = at('signin')
+  const iqcCards = at('iqc')
+  const removedCards = at('removed')
+
+  return (
+    <div className="line-wrap">
+      <div className="line-grid">
+        {/* HPW */}
+        <Droppable id="zone:hpw" accept={['rc']} className="hpw-zone zone">
+          <div className="zone-title">{t('hpw.title')} <span className="en">{t('hpw.en')}</span></div>
+          <div className="hpw-hint">{t('hpw.hint')}</div>
+          <div className="hpw-cards">
+            {hpwCards.map((rc) => (
+              <RuncardChip key={rc.id} rc={rc} draggable={false} compact />
+            ))}
+          </div>
+        </Droppable>
+
+        {/* Soak Bench */}
+        <div className="bench">
+          <div className="bench-title">{bench.name} <span className="en">{t('bench.en')}</span></div>
+          <div className="bench-tanks">
+            <TankCard tankKey="A" tank={bench.tanks.A} />
+            <TankCard tankKey="B" tank={bench.tanks.B} />
+          </div>
+
+          {/* 移出區：放在 Soak Bench 底下 */}
+          <Droppable id="zone:removed" accept={['rc']} className="removed-zone">
+            <div className="tray-title removed-title">{t('removed.title')} <span className="en">{t('removed.en')}</span></div>
+            <div className="removed-hint">{t('removed.hint')}</div>
+            <div className="removed-list removed-list-row">
+              {removedCards.length === 0 && <div className="pool-empty">{t('removed.empty')}</div>}
+              {removedCards.map((rc) => (
+                <RuncardChip key={rc.id} rc={rc} compact />
+              ))}
+            </div>
+          </Droppable>
+        </div>
+
+        {/* IQC */}
+        <Droppable id="zone:iqc" accept={['rc']} className="iqc-zone zone tall" style={{ '--zc': COLORS.iqc }}>
+          <div className="station-title">IQC</div>
+          <div className="station-list">
+            {iqcCards.length === 0 && <div className="station-hint">{t('station.drop')}</div>}
+            {iqcCards.map((rc) => <RuncardChip key={rc.id} rc={rc} compact />)}
+          </div>
+        </Droppable>
+
+        {/* Signin */}
+        <Droppable id="zone:signin" accept={['rc']} className="signin-zone zone" style={{ '--zc': COLORS.signin }}>
+          <div className="station-title light">Signin</div>
+          <div className="station-list">
+            {signinCards.length === 0 && <div className="station-hint light">{t('station.drop')}</div>}
+            {signinCards.map((rc) => <RuncardChip key={rc.id} rc={rc} compact />)}
+          </div>
+        </Droppable>
+
+        {/* Runcard pool + Acid tray + Removal zone */}
+        <div className="tray-col">
+          <Droppable id="zone:pool" accept={['rc']} className="runcard-pool">
+            <div className="tray-title">{t('pool.title')} <span className="en">{t('pool.en')}</span></div>
+            <div className="pool-list">
+              {poolCards.length === 0 && <div className="pool-empty">{t('pool.empty')}</div>}
+              {poolCards.map((rc) => (
+                <RuncardChip key={rc.id} rc={rc} />
+              ))}
+            </div>
+          </Droppable>
+
+          <Droppable id="zone:acidtray" accept={['tankacid']} className="acid-tray">
+            <div className="tray-title">{t('liquids.title')} <span className="en">{t('liquids.en')}</span></div>
+            <div className="acid-list">
+              {ALL_LIQUIDS.map((l) => (
+                <AcidChip key={l} liquid={l} />
+              ))}
+            </div>
+            <div className="tray-note">{t('liquids.note')}</div>
+          </Droppable>
+        </div>
+      </div>
+
+      <Legend />
+    </div>
+  )
+}
+
+function TankCard({ tankKey, tank }) {
+  const { state } = useStore()
+  const { t } = useT()
+  const rc = tank.runcardId ? state.runcards[tank.runcardId] : null
+  const scheduled = scheduledRuncardFor(state, tank.id)
+  const liquidColor = tank.acid ? COLORS[tank.acid] : '#cbd5e1'
+  const pct = tank.totalSec ? Math.max(0, (tank.remaining / tank.totalSec) * 100) : 0
+
+  return (
+    <div className={'tank' + (tank.abnormal ? ' abnormal' : '')}>
+      <div className="tank-head">
+        <span className="tank-name">{tank.label}</span>
+        {tank.acid && (
+          <span className="tank-acid-badge" style={{ background: liquidColor }}>
+            {tank.acid} {tank.acid === PW ? t('suffix.pw') : t('suffix.acid')}
+          </span>
+        )}
+        {tank.abnormal && <span className="tank-flag-abn">⚠ {t('tank.abnormal')}</span>}
+      </div>
+
+      <div className="tank-body">
+        {/* Countdown 碼表 */}
+        <div className="countdown-box">
+          <div className="cd-label">{t('tank.countdown')}</div>
+          <div className={'cd-time' + (tank.status === 'done' ? ' done' : '') + (tank.status === 'running' ? ' run' : '')}>
+            {fmt(tank.remaining)}
+          </div>
+          <div className="cd-status">
+            {tank.status === 'running' && t('tank.soaking')}
+            {tank.status === 'done' && t('tank.ready')}
+            {tank.status === 'idle' && (scheduled ? t('tank.callPlace', { id: scheduled.id }) : t('tank.waiting'))}
+          </div>
+          {tank.totalSec != null && (
+            <div className="cd-bar">
+              <div className="cd-fill" style={{ width: pct + '%', background: tank.status === 'done' ? '#22c55e' : liquidColor }} />
+            </div>
+          )}
+        </div>
+
+        {/* Runcard 綠色放置區 */}
+        <Droppable id={'rcslot:' + tank.id} accept={['rc']} className={'rc-slot' + (rc ? ' filled' : '')}>
+          <div className="slot-label">{t('tank.runcard')}</div>
+          {rc ? (
+            <RuncardChip rc={rc} compact />
+          ) : scheduled ? (
+            <div className="slot-call">{t('tank.callPlace', { id: scheduled.id })}</div>
+          ) : (
+            <div className="slot-empty">{t('tank.slotEmpty')}</div>
+          )}
+        </Droppable>
+      </div>
+
+      {/* Acid/PW 倒液區 */}
+      <Droppable id={'acidslot:' + tank.id} accept={['acid', 'tankacid']} className="acid-slot" style={{ '--lc': liquidColor }}>
+        <span className="slot-label">{t('tank.acidLabel')}</span>
+        {tank.acid ? (
+          <TankAcidBottle tankId={tank.id} liquid={tank.acid} disabled={!!rc} />
+        ) : (
+          <span className="acid-slot-val" style={{ color: '#94a3b8' }}>{t('tank.dropLiquid')}</span>
+        )}
+      </Droppable>
+    </div>
+  )
+}
+
+function Legend() {
+  const { t } = useT()
+  return (
+    <div className="legend">
+      <span className="lg"><i style={{ background: COLORS.signin }} /> {t('legend.signin')}</span>
+      <span className="lg"><i style={{ background: COLORS.iqc }} /> {t('legend.iqc')}</span>
+      <span className="lg"><i style={{ background: COLORS['STM-14'] }} /> STM-14</span>
+      <span className="lg"><i style={{ background: COLORS['STM-31'] }} /> STM-31</span>
+      <span className="lg"><i style={{ background: COLORS['STM-07'] }} /> STM-07</span>
+      <span className="lg"><i style={{ background: COLORS.PW }} /> {t('legend.pw')}</span>
+      <span className="lg-note">{t('legend.flow')}</span>
+    </div>
+  )
+}
