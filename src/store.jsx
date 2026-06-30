@@ -45,8 +45,8 @@ function makeRuncard(id, pn) {
     signin: false,
     iqc: false,
     acidSoaked: false, // 是否已泡過酸（PW 槽前置條件）
-    abnormal: false, // 曾在倒數中被移出 → 異常（持續提示，直到進 HPW / 重置）
-    remainingSec: null, // 被移出時保留的剩餘秒，再放入時接續倒數
+    abnormal: false, // 曾在未達標時被移出 → 異常（持續提示，直到進 HPW / 重置）
+    elapsedSec: null, // 被移出時保留的已計時秒，再放入時接續往上計時
     location: 'pool', // pool | signin | iqc | <tankId> | hpw | removed
     done: false,
   }
@@ -58,12 +58,19 @@ function makeTank(id, label) {
     label,
     acid: null, // 桶內液體（拖酸種瓶倒入）；一桶一酸
     runcardId: null,
-    totalSec: null,
-    remaining: null,
-    status: 'idle', // idle | running | done
-    abnormal: false, // 倒數中被取出 → 異常
+    totalSec: null, // 要求浸泡秒（目標）
+    elapsedSec: null, // 已計時秒（正常往上計時，超時不停）
+    status: 'idle', // idle | running（未達標）| over（已達標/超時）
+    abnormal: false, // 未達標即被取出 → 異常
   }
 }
+
+// 顯示用：M:SS
+const fmtSec = (s) => {
+  s = Math.max(0, Math.round(s || 0))
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
+}
+const tankStatus = (elapsed, total) => (elapsed >= total ? 'over' : 'running')
 
 export function makeInitialState() {
   snSeq = 386000
@@ -154,9 +161,10 @@ function baseReducer(state, action) {
       for (const bench of Object.values(benches)) {
         for (const key of Object.keys(bench.tanks)) {
           const t = bench.tanks[key]
-          if (t.status === 'running' && t.remaining > 0) {
-            const rem = t.remaining - 1
-            bench.tanks[key] = { ...t, remaining: rem, status: rem <= 0 ? 'done' : 'running' }
+          // 槽內有零件就持續往上計時（達標後不停，進入超時）
+          if (t.runcardId && t.elapsedSec != null) {
+            const el = t.elapsedSec + 1
+            bench.tanks[key] = { ...t, elapsedSec: el, status: tankStatus(el, t.totalSec) }
             changed = true
           }
         }
@@ -278,15 +286,19 @@ function emptyTankAcid(state, tankId, silent) {
 }
 
 // 若 runcard 原本在某槽，先把它從槽中取出（判定是否異常），回傳新 state
-// 倒數中被取出 → 在 Runcard 上保留剩餘秒數（remainingSec）並標記 abnormal，
-//                之後再放入任何 Tank 時可「接續倒數」。
+// 未達標就被取出 → 在 Runcard 上保留已計時秒（elapsedSec）並標記 abnormal，
+//                之後再放入任何 Tank 時可「接續計時」。
+let otSeq = 0
 function detachFromTank(state, rc, fromTank) {
   const ref = tankIdToRef(state, fromTank)
   if (!ref) return { state, abnormal: false }
   const bench = state.benches[ref.benchId]
   const t = bench.tanks[ref.key]
-  const wasRunning = t.status === 'running'
-  const wasAbnormal = wasRunning || rc.abnormal // 本次倒數中取出，或本來就帶異常歷史
+  const total = t.totalSec || 0
+  const elapsed = t.elapsedSec || 0
+  const underTime = elapsed < total // 未達標就被取出 → 異常
+  const overtimeSec = Math.max(0, elapsed - total) // 超時秒數
+  const wasAbnormal = underTime || rc.abnormal // 本次未達標取出，或本來就帶異常歷史
   // 紀錄：出槽
   const record = {
     id: rc.id + '@' + Date.now() + Math.random(),
@@ -294,26 +306,39 @@ function detachFromTank(state, rc, fromTank) {
     pn: rc.pn,
     sn: rc.sn,
     acid: t.acid,
-    reqSec: t.totalSec,
-    actualSec: (t.totalSec || 0) - (t.remaining || 0),
-    result: wasAbnormal ? 'abnormal' : t.acid === PW ? 'rinse' : 'pass',
+    reqSec: total,
+    actualSec: elapsed,
+    overtimeSec,
+    result: wasAbnormal ? 'abnormal' : overtimeSec > 0 ? 'over' : t.acid === PW ? 'rinse' : 'pass',
     out: state.nowTs,
   }
-  const newTank = { ...t, runcardId: null, status: 'idle', remaining: null, totalSec: null, abnormal: false }
+  const newTank = { ...t, runcardId: null, status: 'idle', elapsedSec: null, totalSec: null, abnormal: false }
   let newState = {
     ...state,
     benches: { ...state.benches, [ref.benchId]: { ...bench, tanks: { ...bench.tanks, [ref.key]: newTank } } },
     records: [record, ...state.records],
   }
+  // 超時取出 → 直接寫一筆 log（記錄超時多久）
+  if (overtimeSec > 0) {
+    const ts = state.nowTs || 0
+    const entry = {
+      id: 'ot-' + ++otSeq,
+      ts,
+      zh: `${rc.id} 超時 ${fmtSec(overtimeSec)} 後取出（要求 ${fmtSec(total)}，實際 ${fmtSec(elapsed)}）`,
+      en: `${rc.id} removed ${fmtSec(overtimeSec)} over limit (req ${fmtSec(total)}, actual ${fmtSec(elapsed)})`,
+      type: 'error',
+    }
+    newState = { ...newState, logs: [...newState.logs, entry] }
+  }
   // 在 Runcard 上記錄狀態，跟著零件走
   const rcPatch = {}
-  if (wasRunning) {
+  if (underTime) {
     rcPatch.abnormal = true
-    rcPatch.remainingSec = Math.max(0, t.remaining ?? 0) // 保留剩餘秒，再放入時接續
+    rcPatch.elapsedSec = elapsed // 保留已計時秒，再放入時接續往上計時
   }
-  if (!wasRunning && t.acid && t.acid !== PW) rcPatch.acidSoaked = true // 完成酸泡
+  if (!underTime && t.acid && t.acid !== PW) rcPatch.acidSoaked = true // 完成酸泡
   if (Object.keys(rcPatch).length) newState = patchRc(newState, rc.id, rcPatch)
-  return { state: newState, abnormal: wasRunning }
+  return { state: newState, abnormal: underTime }
 }
 
 function patchRc(state, id, patch) {
@@ -398,7 +423,7 @@ function moveToHpw(state, rc, fromTank) {
     iqc: false,
     acidSoaked: false,
     abnormal: false,
-    remainingSec: null,
+    elapsedSec: null,
   })
   return { ...s, toast: toast(`${rc.id} 已進入 HPW，流程結束`, `${rc.id} entered HPW — flow complete`, 'ok') }
 }
@@ -437,30 +462,30 @@ function moveToTank(state, rc, tankId, fromTank) {
     const d = detachFromTank(s, rc, fromTank)
     s = d.state
   }
-  const rcNow = s.runcards[rc.id] // detach 可能已更新 abnormal / remainingSec
-  // 接續倒數：若帶有保留的剩餘秒，就從剩餘秒開始；否則從頭
-  const resume = rcNow.remainingSec != null
-  const remaining = resume ? rcNow.remainingSec : rcNow.soakSec
+  const rcNow = s.runcards[rc.id] // detach 可能已更新 abnormal / elapsedSec
+  // 接續計時：若帶有保留的已計時秒，就從該秒接續往上計時；否則從 0 開始
+  const resume = rcNow.elapsedSec != null
+  const elapsed = resume ? rcNow.elapsedSec : 0
   const carryAbnormal = !!rcNow.abnormal
   const bench = s.benches[ref.benchId]
   const newTank = {
     ...bench.tanks[ref.key],
     runcardId: rc.id,
     totalSec: rcNow.soakSec,
-    remaining,
-    status: remaining <= 0 ? 'done' : 'running',
+    elapsedSec: elapsed,
+    status: tankStatus(elapsed, rcNow.soakSec),
     abnormal: carryAbnormal, // 異常提示跟著零件，繼續顯示
   }
   s = {
     ...s,
     benches: { ...s.benches, [ref.benchId]: { ...bench, tanks: { ...bench.tanks, [ref.key]: newTank } } },
   }
-  s = patchRc(s, rc.id, { location: tankId, remainingSec: null }) // 剩餘秒已交給 Tank 計時
+  s = patchRc(s, rc.id, { location: tankId, elapsedSec: null }) // 已計時秒已交給 Tank
   const msg = resume
     ? carryAbnormal
-      ? toast(`${rc.id} 放入 ${tank.label}，接續倒數（異常提示中）`, `${rc.id} resumed in ${tank.label} (abnormal flagged)`, 'warn')
-      : toast(`${rc.id} 放入 ${tank.label}，接續倒數`, `${rc.id} resumed in ${tank.label}`, 'ok')
-    : toast(`${rc.id} 已放入 ${tank.label}，開始浸泡`, `${rc.id} placed in ${tank.label} — soaking`, 'ok')
+      ? toast(`${rc.id} 放入 ${tank.label}，接續計時（異常提示中）`, `${rc.id} resumed in ${tank.label} (abnormal flagged)`, 'warn')
+      : toast(`${rc.id} 放入 ${tank.label}，接續計時`, `${rc.id} resumed in ${tank.label}`, 'ok')
+    : toast(`${rc.id} 已放入 ${tank.label}，開始計時`, `${rc.id} placed in ${tank.label} — timing`, 'ok')
   return { ...s, toast: msg }
 }
 

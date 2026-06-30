@@ -93,21 +93,27 @@ function LogPanel({ onClose }) {
   const { state, dispatch } = useStore()
   const { t, lang } = useT()
   const [copied, setCopied] = useState(false)
-  const fmtTime = (ts) => new Date(ts).toLocaleTimeString('zh-TW', { hour12: false })
-  // 新到舊
-  const rows = [...state.logs].reverse()
+  const fmtTime = (ts) => (ts ? new Date(ts).toLocaleTimeString('zh-TW', { hour12: false }) : '--:--:--')
+  const esc = (s) => String(s).replace(/\|/g, '\\|')
+  const rows = [...state.logs].reverse() // 新到舊
 
-  function asText() {
-    return [...state.logs]
-      .map((e) => `[${fmtTime(e.ts)}] [${e.type.toUpperCase()}] ${lang === 'zh' ? e.zh : e.en}`)
+  // 純前端：產出好複製 / 好下載的 Markdown 表格（中英並列）
+  function asMarkdown() {
+    const head =
+      `# ${t('log.title')}\n\n` +
+      `| # | ${t('log.colTime')} | ${t('log.colType')} | 中文 | English |\n` +
+      `|---|------|------|------|------|\n`
+    const body = state.logs
+      .map((e, i) => `| ${i + 1} | ${fmtTime(e.ts)} | ${e.type.toUpperCase()} | ${esc(e.zh)} | ${esc(e.en)} |`)
       .join('\n')
+    return head + body + '\n'
   }
-  async function copy() {
-    const text = asText()
+
+  async function copyMd() {
+    const text = asMarkdown()
     try {
       await navigator.clipboard.writeText(text)
     } catch {
-      // 後備：textarea + execCommand
       const ta = document.createElement('textarea')
       ta.value = text
       document.body.appendChild(ta)
@@ -119,26 +125,54 @@ function LogPanel({ onClose }) {
     setTimeout(() => setCopied(false), 1500)
   }
 
+  function downloadMd() {
+    const blob = new Blob([asMarkdown()], { type: 'text/markdown;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    const d = new Date()
+    const pad = (n) => String(n).padStart(2, '0')
+    a.href = url
+    a.download = `soak-log-${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}.md`
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+    URL.revokeObjectURL(url)
+  }
+
   return (
     <div className="log-overlay" onClick={onClose}>
-      <div className="log-panel" onClick={(e) => e.stopPropagation()}>
+      <div className="log-modal" onClick={(e) => e.stopPropagation()}>
         <div className="log-head">
           <div className="log-title">{t('log.title')} <span className="log-count">{t('log.count', { n: state.logs.length })}</span></div>
           <div className="log-actions">
-            <button className="log-act" onClick={copy} disabled={!state.logs.length}>{copied ? '✓ ' + t('log.copied') : '⧉ ' + t('log.copy')}</button>
+            <button className="log-act" onClick={copyMd} disabled={!state.logs.length}>{copied ? '✓ ' + t('log.copied') : '⧉ ' + t('log.copy')}</button>
+            <button className="log-act" onClick={downloadMd} disabled={!state.logs.length}>⭳ {t('log.download')}</button>
             <button className="log-act" onClick={() => dispatch({ type: 'CLEAR_LOGS' })} disabled={!state.logs.length}>🗑 {t('log.clear')}</button>
             <button className="log-act log-close" onClick={onClose}>✕ {t('log.close')}</button>
           </div>
         </div>
         <div className="log-body">
           {rows.length === 0 && <div className="log-empty">{t('log.empty')}</div>}
-          {rows.map((e) => (
-            <div className={'log-row log-' + e.type} key={e.id}>
-              <span className="log-time">{fmtTime(e.ts)}</span>
-              <span className={'log-badge log-badge-' + e.type}>{e.type}</span>
-              <span className="log-msg">{lang === 'zh' ? e.zh : e.en}</span>
-            </div>
-          ))}
+          {rows.length > 0 && (
+            <table className="log-table">
+              <thead>
+                <tr>
+                  <th className="lt-time">{t('log.colTime')}</th>
+                  <th className="lt-type">{t('log.colType')}</th>
+                  <th>{t('log.colMsg')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((e) => (
+                  <tr key={e.id} className={'log-' + e.type}>
+                    <td className="lt-time">{fmtTime(e.ts)}</td>
+                    <td className="lt-type"><span className={'log-badge log-badge-' + e.type}>{e.type}</span></td>
+                    <td className="log-msg">{lang === 'zh' ? e.zh : e.en}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
     </div>

@@ -106,7 +106,9 @@ function TankCard({ tankKey, tank }) {
   const rc = tank.runcardId ? state.runcards[tank.runcardId] : null
   const scheduled = scheduledRuncardFor(state, tank.id)
   const liquidColor = tank.acid ? COLORS[tank.acid] : '#cbd5e1'
-  const pct = tank.totalSec ? Math.max(0, (tank.remaining / tank.totalSec) * 100) : 0
+  const over = tank.status === 'over'
+  const overtime = tank.totalSec != null ? Math.max(0, (tank.elapsedSec || 0) - tank.totalSec) : 0
+  const pct = tank.totalSec ? Math.min(100, ((tank.elapsedSec || 0) / tank.totalSec) * 100) : 0
 
   return (
     <div className={'tank' + (tank.abnormal ? ' abnormal' : '')}>
@@ -121,20 +123,27 @@ function TankCard({ tankKey, tank }) {
       </div>
 
       <div className="tank-body">
-        {/* Countdown 碼表 */}
+        {/* 計時碼表（正常往上計時，超時不停） */}
         <div className="countdown-box">
           <div className="cd-label">{t('tank.countdown')}</div>
-          <div className={'cd-time' + (tank.status === 'done' ? ' done' : '') + (tank.status === 'running' ? ' run' : '')}>
-            {fmt(tank.remaining)}
+          <div className={'cd-time' + (over ? ' over' : tank.status === 'running' ? ' run' : '')}>
+            {tank.elapsedSec == null ? '--:--' : fmt(tank.elapsedSec)}
+          </div>
+          <div className="cd-sub">
+            {tank.totalSec != null
+              ? over
+                ? `${t('tank.over')} +${fmt(overtime)}　(${t('tank.reqShort')} ${fmt(tank.totalSec)})`
+                : `${t('tank.reqShort')} ${fmt(tank.totalSec)}`
+              : ''}
           </div>
           <div className="cd-status">
             {tank.status === 'running' && t('tank.soaking')}
-            {tank.status === 'done' && t('tank.ready')}
+            {over && t('tank.over')}
             {tank.status === 'idle' && (scheduled ? t('tank.callPlace', { id: scheduled.id }) : t('tank.waiting'))}
           </div>
           {tank.totalSec != null && (
             <div className="cd-bar">
-              <div className="cd-fill" style={{ width: pct + '%', background: tank.status === 'done' ? '#22c55e' : liquidColor }} />
+              <div className="cd-fill" style={{ width: pct + '%', background: over ? '#dc2626' : liquidColor }} />
             </div>
           )}
         </div>

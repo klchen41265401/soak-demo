@@ -74,7 +74,7 @@ export default function MonitorPage() {
           <thead>
             <tr>
               <th>{t('mon.th.runcard')}</th><th>{t('mon.th.pnsn')}</th><th>{t('mon.th.req')}</th>
-              <th>{t('mon.th.remain')}</th><th>{t('mon.th.prog')}</th><th>{t('mon.th.status')}</th>
+              <th>{t('mon.th.elapsed')}</th><th>{t('mon.th.prog')}</th><th>{t('mon.th.status')}</th>
             </tr>
           </thead>
           <tbody>{rc ? <PartRow tank={tank} rc={rc} /> : null}</tbody>
@@ -106,18 +106,23 @@ export default function MonitorPage() {
 
 function PartRow({ tank, rc }) {
   const { t } = useT()
-  const pct = tank.totalSec ? Math.min(100, ((tank.totalSec - tank.remaining) / tank.totalSec) * 100) : 0
+  const elapsed = tank.elapsedSec || 0
+  const total = tank.totalSec || 0
+  const remaining = Math.max(0, total - elapsed)
+  const overtime = Math.max(0, elapsed - total)
+  const over = tank.status === 'over'
+  const pct = total ? Math.min(100, (elapsed / total) * 100) : 0
   let cls = 'p-soak', txt = t('mon.st.soaking'), rowCls = ''
   if (tank.abnormal) { cls = 'p-over'; txt = t('mon.st.abnormal'); rowCls = 'row-over' }
-  else if (tank.status === 'done') { cls = 'p-done'; txt = t('mon.st.done'); rowCls = 'row-done' }
-  else if (tank.remaining <= NEAR) { cls = 'p-near'; txt = t('mon.st.near') }
+  else if (over) { cls = 'p-over'; txt = t('mon.st.over'); rowCls = 'row-over' }
+  else if (remaining <= NEAR) { cls = 'p-near'; txt = t('mon.st.near') }
   return (
     <tr className={rowCls}>
       <td data-l="Runcard"><span className="mon-rc">{rc.id}</span></td>
       <td data-l="PN/SN"><div className="mon-pnsn"><div>{rc.pn}</div><div className="dim">{rc.sn}</div></div></td>
-      <td data-l="Req"><span className="mon-num">{fmt(tank.totalSec)}</span></td>
-      <td data-l="Remain"><span className="mon-num big">{fmt(tank.remaining)}</span></td>
-      <td data-l="Progress"><div className="mon-bar"><div className="mon-fill" style={{ width: pct + '%' }} /></div></td>
+      <td data-l="Req"><span className="mon-num">{fmt(total)}</span></td>
+      <td data-l="Elapsed"><span className={'mon-num big' + (over ? ' over' : '')}>{fmt(elapsed)}{over ? ` (+${fmt(overtime)})` : ''}</span></td>
+      <td data-l="Progress"><div className="mon-bar"><div className={'mon-fill' + (over ? ' over' : '')} style={{ width: pct + '%' }} /></div></td>
       <td data-l="Status"><span className={'mon-pillst ' + cls}>{txt}</span></td>
     </tr>
   )
@@ -127,6 +132,7 @@ function RecordRow({ r }) {
   const { t } = useT()
   const map = {
     abnormal: { cls: 'r-over', txt: t('mon.res.abnormal') },
+    over: { cls: 'r-over', txt: t('mon.res.over') },
     pass: { cls: 'r-pass', txt: t('mon.res.pass') },
     rinse: { cls: 'r-pass', txt: t('mon.res.rinse') },
   }
@@ -137,7 +143,7 @@ function RecordRow({ r }) {
       <td data-l="PN/SN"><div className="mon-pnsn"><div>{r.pn}</div><div className="dim">{r.sn}</div></div></td>
       <td data-l="Liquid"><span className="mon-acidv">{r.acid === PW ? 'PW' : r.acid || '—'}</span></td>
       <td data-l="Req"><span className="mon-num">{fmt(r.reqSec)}</span></td>
-      <td data-l="Actual"><span className="mon-num">{fmt(r.actualSec)}</span></td>
+      <td data-l="Actual"><span className="mon-num">{fmt(r.actualSec)}</span>{r.overtimeSec > 0 ? <span className="mon-ot"> +{fmt(r.overtimeSec)}</span> : null}</td>
       <td data-l="Result"><span className={'mon-res ' + m.cls}>{m.txt}</span></td>
       <td data-l="Out"><span className="dim mono">{clock(r.out)}</span></td>
     </tr>
