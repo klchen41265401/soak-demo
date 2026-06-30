@@ -16,6 +16,7 @@ export default function App() {
   const { t, lang } = useT()
   const [tab, setTab] = useState('line')
   const [activeId, setActiveId] = useState(null)
+  const [showLog, setShowLog] = useState(false)
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
 
   // toast 自動消失
@@ -53,6 +54,9 @@ export default function App() {
               </button>
             ))}
           </nav>
+          <button className="log-btn" onClick={() => setShowLog(true)}>
+            ▤ {t('btn.log')}{state.logs.length ? ` (${state.logs.length})` : ''}
+          </button>
           <button className="lang-btn" onClick={() => dispatch({ type: 'TOGGLE_LANG' })} title="中 / EN">
             🌐 {t('btn.lang')}
           </button>
@@ -60,6 +64,8 @@ export default function App() {
             ⟲ {t('btn.reset')}
           </button>
         </header>
+
+        {showLog && <LogPanel onClose={() => setShowLog(false)} />}
 
         <main className="page">
           {tab === 'line' && <LinePage />}
@@ -80,6 +86,62 @@ export default function App() {
         {activeId ? <DragGhost id={activeId} state={state} /> : null}
       </DragOverlay>
     </DndContext>
+  )
+}
+
+function LogPanel({ onClose }) {
+  const { state, dispatch } = useStore()
+  const { t, lang } = useT()
+  const [copied, setCopied] = useState(false)
+  const fmtTime = (ts) => new Date(ts).toLocaleTimeString('zh-TW', { hour12: false })
+  // 新到舊
+  const rows = [...state.logs].reverse()
+
+  function asText() {
+    return [...state.logs]
+      .map((e) => `[${fmtTime(e.ts)}] [${e.type.toUpperCase()}] ${lang === 'zh' ? e.zh : e.en}`)
+      .join('\n')
+  }
+  async function copy() {
+    const text = asText()
+    try {
+      await navigator.clipboard.writeText(text)
+    } catch {
+      // 後備：textarea + execCommand
+      const ta = document.createElement('textarea')
+      ta.value = text
+      document.body.appendChild(ta)
+      ta.select()
+      try { document.execCommand('copy') } catch {}
+      document.body.removeChild(ta)
+    }
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
+  }
+
+  return (
+    <div className="log-overlay" onClick={onClose}>
+      <div className="log-panel" onClick={(e) => e.stopPropagation()}>
+        <div className="log-head">
+          <div className="log-title">{t('log.title')} <span className="log-count">{t('log.count', { n: state.logs.length })}</span></div>
+          <div className="log-actions">
+            <button className="log-act" onClick={copy} disabled={!state.logs.length}>{copied ? '✓ ' + t('log.copied') : '⧉ ' + t('log.copy')}</button>
+            <button className="log-act" onClick={() => dispatch({ type: 'CLEAR_LOGS' })} disabled={!state.logs.length}>🗑 {t('log.clear')}</button>
+            <button className="log-act log-close" onClick={onClose}>✕ {t('log.close')}</button>
+          </div>
+        </div>
+        <div className="log-body">
+          {rows.length === 0 && <div className="log-empty">{t('log.empty')}</div>}
+          {rows.map((e) => (
+            <div className={'log-row log-' + e.type} key={e.id}>
+              <span className="log-time">{fmtTime(e.ts)}</span>
+              <span className={'log-badge log-badge-' + e.type}>{e.type}</span>
+              <span className="log-msg">{lang === 'zh' ? e.zh : e.en}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
   )
 }
 

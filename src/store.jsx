@@ -93,6 +93,7 @@ export function makeInitialState() {
     operatorView: { benchId: 'SB1', tankKey: 'A' }, // 現場螢幕看哪一槽
     monitorTankId: 'SB1-A',
     toast: null, // { id, msg, en, type }
+    logs: [], // 操作紀錄 { id, ts, zh, en, type }
     nowTs: 0,
     lang: 'zh', // 'zh' | 'en'
   }
@@ -117,11 +118,32 @@ const toast = (msg, en, type = 'warn') => ({ id: ++toastSeq, msg, en, type })
 
 /* =========================================================================
  *  Reducer
+ *  外層 reducer 會把每一次「新 toast」自動寫入 logs（操作紀錄）。
  * ========================================================================= */
 function reducer(state, action) {
+  const next = baseReducer(state, action)
+  // 有新的 toast（id 不同）→ 記一筆 log
+  if (next.toast && next.toast.id !== (state.toast && state.toast.id)) {
+    const tt = next.toast
+    const entry = { id: tt.id, ts: action.ts || Date.now(), zh: tt.msg, en: tt.en, type: tt.type }
+    return { ...next, logs: [...next.logs, entry] }
+  }
+  return next
+}
+
+function baseReducer(state, action) {
   switch (action.type) {
     case 'RESET':
-      return { ...makeInitialState(), lang: state.lang } // 語言為 UI 偏好，重置不還原
+      // 語言與操作紀錄為 UI 層，重置不還原；並記一筆「已重置」
+      return {
+        ...makeInitialState(),
+        lang: state.lang,
+        logs: state.logs,
+        toast: toast('已重置全部狀態', 'All state reset', 'ok'),
+      }
+
+    case 'CLEAR_LOGS':
+      return { ...state, logs: [] }
 
     case 'TOGGLE_LANG':
       return { ...state, lang: state.lang === 'zh' ? 'en' : 'zh' }

@@ -23,7 +23,7 @@ export default function LinePage() {
       <div className="line-grid">
         {/* HPW */}
         <Droppable id="zone:hpw" accept={['rc']} className="hpw-zone zone">
-          <div className="zone-title">{t('hpw.title')} <span className="en">{t('hpw.en')}</span></div>
+          <div className="zone-title">{t('hpw.title')}</div>
           <div className="hpw-hint">{t('hpw.hint')}</div>
           <div className="hpw-cards">
             {hpwCards.map((rc) => (
@@ -34,7 +34,7 @@ export default function LinePage() {
 
         {/* Soak Bench */}
         <div className="bench">
-          <div className="bench-title">{bench.name} <span className="en">{t('bench.en')}</span></div>
+          <div className="bench-title">{bench.name}</div>
           <div className="bench-tanks">
             <TankCard tankKey="A" tank={bench.tanks.A} />
             <TankCard tankKey="B" tank={bench.tanks.B} />
@@ -42,7 +42,7 @@ export default function LinePage() {
 
           {/* 移出區：放在 Soak Bench 底下 */}
           <Droppable id="zone:removed" accept={['rc']} className="removed-zone">
-            <div className="tray-title removed-title">{t('removed.title')} <span className="en">{t('removed.en')}</span></div>
+            <div className="tray-title removed-title">{t('removed.title')}</div>
             <div className="removed-hint">{t('removed.hint')}</div>
             <div className="removed-list removed-list-row">
               {removedCards.length === 0 && <div className="pool-empty">{t('removed.empty')}</div>}
@@ -74,7 +74,7 @@ export default function LinePage() {
         {/* Runcard pool + Acid tray + Removal zone */}
         <div className="tray-col">
           <Droppable id="zone:pool" accept={['rc']} className="runcard-pool">
-            <div className="tray-title">{t('pool.title')} <span className="en">{t('pool.en')}</span></div>
+            <div className="tray-title">{t('pool.title')}</div>
             <div className="pool-list">
               {poolCards.length === 0 && <div className="pool-empty">{t('pool.empty')}</div>}
               {poolCards.map((rc) => (
@@ -84,7 +84,7 @@ export default function LinePage() {
           </Droppable>
 
           <Droppable id="zone:acidtray" accept={['tankacid']} className="acid-tray">
-            <div className="tray-title">{t('liquids.title')} <span className="en">{t('liquids.en')}</span></div>
+            <div className="tray-title">{t('liquids.title')}</div>
             <div className="acid-list">
               {ALL_LIQUIDS.map((l) => (
                 <AcidChip key={l} liquid={l} />

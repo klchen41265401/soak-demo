@@ -5,7 +5,10 @@
       "Bash(node -e ' *)",
       "Bash(git symbolic-ref *)",
       "Bash(git rm *)",
-      "Bash(git commit -q -m ' *)"
+      "Bash(git commit -q -m ' *)",
+      "Bash(gh auth *)",
+      "Bash(gh api *)",
+      "Bash(git commit -q --allow-empty -m 'chore: trigger Pages deploy *)"
     ]
   }
 }

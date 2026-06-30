@@ -76,7 +76,7 @@ export function AcidChip({ liquid }) {
       <div className="acid-chip" style={{ borderColor: color }}>
         <span className="acid-cap" style={{ background: color }} />
         <span className="acid-name">{liquid}</span>
-        <span className="acid-sub">{isPw ? t('suffix.pwFull') : t('suffix.acidFull')}</span>
+        <span className="acid-sub">{isPw ? t('suffix.pw') : t('suffix.acid')}</span>
       </div>
     </Draggable>
   )
