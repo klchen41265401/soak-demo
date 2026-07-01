@@ -494,22 +494,39 @@ button:focus-visible, .draggable:focus-visible { outline: none; box-shadow: var(
 
 .mon-tbl { width: 100%; border-collapse: collapse; }
 .mon-tbl thead th { font-family: var(--mono); font-size: 14.5px; letter-spacing: .8px; text-transform: uppercase; color: #8ba2bb; text-align: left; padding: 12px 18px; border-bottom: 1px solid #243446; font-weight: 500; white-space: nowrap; }
-.mon-tbl tbody td { padding: 14px 18px; border-bottom: 1px solid #1c2735; font-size: 17.5px; vertical-align: middle; }
+.mon-tbl tbody td { padding: 10px 16px; border-bottom: 1px solid #1c2735; font-size: 14.5px; vertical-align: middle; }
 .mon-tbl tbody tr:last-child td { border-bottom: none; }
 .mon-tbl tbody tr { transition: background .12s; }
 .mon-tbl tbody tr:hover { background: #161f2b; }
-.mon-rc { font-family: var(--mono); font-weight: 700; font-size: 18px; }
-.mon-pnsn { font-family: var(--mono); font-size: 15.5px; line-height: 1.5; }
+.mon-rc { font-family: var(--mono); font-weight: 700; font-size: 15px; }
+.mon-pnsn { font-family: var(--mono); font-size: 12.5px; line-height: 1.5; }
 .mon-pnsn .dim { color: #8ba2bb; }
 .dim { color: #8ba2bb; }
-.mon-num { font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 19px; font-weight: 700; }
+.mon-num { font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 15px; font-weight: 700; }
 .mon-num.big { font-size: 21px; color: #38bdf8; }
 .mon-num.over { color: #ff9aa6; }
 .mon-ot { font-family: var(--mono); font-size: 14px; font-weight: 700; color: #ff9aa6; }
 .mon-fill.over { background: #f4516a; }
+.mon-fill.done { background: #34d399; }
 .mon-acidv { font-family: var(--mono); color: #2dd4bf; font-weight: 700; }
-.mon-bar { height: 9px; background: #0b1420; border: 1px solid #243446; overflow: hidden; min-width: 120px; }
+.mon-bar { height: 8px; background: #0b1420; border: 1px solid #243446; overflow: hidden; min-width: 0; }
 .mon-fill { height: 100%; background: #22d3ee; transition: width .9s linear; }
+
+/* 所有酸槽一次看（緊湊卡片，含進度條）*/
+.mon-tanks { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); margin-bottom: 20px; }
+.mon-tk { background: #121b26; border: 1px solid #243446; border-radius: var(--r-md); padding: 12px 14px; }
+.mon-tk.alert { border-color: var(--signin); box-shadow: inset 0 0 0 1px var(--signin); }
+.mon-tk-head { display: flex; align-items: center; gap: 9px; margin-bottom: 9px; }
+.mon-tk-acid { font-family: var(--mono); font-weight: 700; font-size: 14px; background: #0e1a17; border: 1px solid; padding: 2px 9px; border-radius: var(--r-sm); }
+.mon-tk-name { font-size: 14px; font-weight: 700; color: #e7eef6; }
+.mon-tk-rc { font-family: var(--mono); font-weight: 700; font-size: 16px; color: #e7eef6; }
+.mon-tk-pnsn { font-family: var(--mono); font-size: 12px; color: #8ba2bb; margin: 2px 0 8px; }
+.mon-tk-times { display: flex; justify-content: space-between; gap: 10px; font-family: var(--mono); font-size: 12.5px; margin-bottom: 6px; color: #cdd7e3; }
+.mon-tk-times .over { color: #ff9aa6; }
+.mon-tk-times .ok { color: #34d399; }
+.mon-tk-foot { margin-top: 9px; }
+.mon-tk-empty { color: #5c748f; font-size: 13px; padding: 16px 0; text-align: center; }
+.mon-tk-empty.alert { color: #ff9aa6; font-weight: 700; }
 .row-over { background: rgba(239, 68, 68, .1); }
 .row-done { background: rgba(16, 185, 129, .08); }
 

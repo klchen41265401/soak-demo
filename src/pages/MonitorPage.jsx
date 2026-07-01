@@ -1,4 +1,4 @@
-import { useStore, useT, allTanks, PW } from '../store.jsx'
+import { useStore, useT, allTanks, COLORS, PW } from '../store.jsx'
 
 const fmt = (s) => {
   if (s == null) return '--:--'
@@ -9,16 +9,10 @@ const clock = (ts) => (ts ? new Date(ts).toLocaleTimeString('zh-TW', { hour12: f
 const NEAR = 8
 
 export default function MonitorPage() {
-  const { state, dispatch } = useStore()
+  const { state } = useStore()
   const { t } = useT()
   const tanks = allTanks(state)
-  const selId = tanks.some((t) => t.id === state.monitorTankId) ? state.monitorTankId : tanks[0].id
-  const tank = tanks.find((t) => t.id === selId)
-  const bench = state.benches[tank.benchId]
-  const rc = tank.runcardId ? state.runcards[tank.runcardId] : null
-
   const abnormalCount = tanks.filter((t) => t.abnormal).length
-  // 被取出、尚未放回任何槽的異常零件
   const pulledCount = Object.values(state.runcards).filter((r) => r.abnormal && !r.done && !state.tanks[r.location]).length
 
   return (
@@ -44,46 +38,12 @@ export default function MonitorPage() {
         </div>
       )}
 
-      <div className="mon-tankbar">
-        {tanks.map((tk) => (
-          <button
-            key={tk.id}
-            className={'mon-tankbtn' + (tk.id === selId ? ' active' : '')}
-            onClick={() => dispatch({ type: 'SET_MONITOR_TANK', tankId: tk.id })}
-          >
-            <span className="mtb-name">{state.benches[tk.benchId].name} · {tk.label}</span>
-            <span className="mtb-acid">{t('mon.liquid')} {tk.acid || '—'}</span>
-            <span className="mtb-cnt">{tk.runcardId ? t('mon.inTank') : t('mon.empty')}{tk.abnormal ? ' · ' + t('mon.abnTag') : ''}</span>
-          </button>
-        ))}
+      {/* 所有酸槽一次看 */}
+      <div className="mon-tanks">
+        {tanks.map((tk) => <MonTank key={tk.id} tank={tk} />)}
       </div>
 
-      <div className="mon-card">
-        <div className="mon-head">
-          <div className="mon-acidbadge">{tank.acid || '—'}</div>
-          <div className="mon-headmeta">
-            <div className="t">{bench.name} · {tank.label}</div>
-            <div className="d">{t('mon.headDesc')}</div>
-          </div>
-        </div>
-
-        <div className="mon-subhead">
-          <h2>{t('mon.partsInTank')}</h2>
-          <span className="mon-count">{(rc ? 1 : 0)}{t('mon.unit')}</span>
-        </div>
-
-        <table className="mon-tbl">
-          <thead>
-            <tr>
-              <th>{t('mon.th.runcard')}</th><th>{t('mon.th.pnsn')}</th><th>{t('mon.th.req')}</th>
-              <th>{t('mon.th.elapsed')}</th><th>{t('mon.th.prog')}</th><th>{t('mon.th.status')}</th>
-            </tr>
-          </thead>
-          <tbody>{rc ? <PartRow tank={tank} rc={rc} /> : null}</tbody>
-        </table>
-        {!rc && <div className="mon-empty">{t('mon.noPart')}</div>}
-      </div>
-
+      {/* 出槽紀錄 */}
       <div className="mon-card">
         <div className="mon-subhead">
           <h2>{t('mon.records')}</h2>
@@ -106,29 +66,56 @@ export default function MonitorPage() {
   )
 }
 
-function PartRow({ tank, rc }) {
+function MonTank({ tank }) {
+  const { state } = useStore()
   const { t } = useT()
-  const elapsed = tank.elapsedSec || 0
+  const bench = state.benches[tank.benchId]
+  const rc = tank.runcardId ? state.runcards[tank.runcardId] : null
   const total = tank.totalSec || 0
+  const elapsed = tank.elapsedSec || 0
   const remaining = Math.max(0, total - elapsed)
   const overtime = Math.max(0, elapsed - total)
   const over = tank.status === 'over'
   const done = tank.status === 'done'
   const pct = total ? Math.min(100, (elapsed / total) * 100) : 0
-  let cls = 'p-soak', txt = t('mon.st.soaking'), rowCls = ''
-  if (tank.abnormal) { cls = 'p-over'; txt = t('mon.st.abnormal'); rowCls = 'row-over' }
-  else if (over) { cls = 'p-over'; txt = t('mon.st.over'); rowCls = 'row-over' }
-  else if (done) { cls = 'p-done'; txt = t('mon.st.done'); rowCls = 'row-done' }
+  const acidColor = tank.acid ? COLORS[tank.acid] : '#5c748f'
+
+  // 被取出未放回？
+  const pulled = !rc && Object.values(state.runcards).find((r) => r.abnormal && !r.done && r.pulledFromTank === tank.id && !state.tanks[r.location])
+
+  let cls = 'p-soak', txt = t('mon.st.soaking')
+  if (tank.abnormal) { cls = 'p-over'; txt = t('mon.st.abnormal') }
+  else if (over) { cls = 'p-over'; txt = t('mon.st.over') }
+  else if (done) { cls = 'p-done'; txt = t('mon.st.done') }
   else if (remaining <= NEAR) { cls = 'p-near'; txt = t('mon.st.near') }
+  const alert = tank.abnormal || over || !!pulled
+
   return (
-    <tr className={rowCls}>
-      <td data-l="Runcard"><span className="mon-rc">{rc.id}</span></td>
-      <td data-l="PN/SN"><div className="mon-pnsn"><div>{rc.pn}</div><div className="dim">{rc.sn}</div></div></td>
-      <td data-l="Req"><span className="mon-num">{fmt(total)}</span></td>
-      <td data-l="Elapsed"><span className={'mon-num big' + (over ? ' over' : '')}>{fmt(elapsed)}{over ? ` (+${fmt(overtime)})` : ''}</span></td>
-      <td data-l="Progress"><div className="mon-bar"><div className={'mon-fill' + (over ? ' over' : '')} style={{ width: pct + '%' }} /></div></td>
-      <td data-l="Status"><span className={'mon-pillst ' + cls}>{txt}</span></td>
-    </tr>
+    <div className={'mon-tk' + (alert ? ' alert' : '')}>
+      <div className="mon-tk-head">
+        <span className="mon-tk-acid" style={{ color: acidColor, borderColor: acidColor }}>
+          {tank.acid ? (tank.acid === PW ? 'PW' : tank.acid) : '—'}
+        </span>
+        <span className="mon-tk-name">{bench.name} · {tank.label}</span>
+      </div>
+
+      {rc ? (
+        <div className="mon-tk-body">
+          <div className="mon-tk-rc">{rc.id}</div>
+          <div className="mon-tk-pnsn">{rc.pn} · {rc.sn}</div>
+          <div className="mon-tk-times">
+            <span className="dim">{t('mon.th.req')} {fmt(total)}</span>
+            <span className={over ? 'over' : done ? 'ok' : ''}>{t('mon.th.elapsed')} {fmt(elapsed)}{over ? ` (+${fmt(overtime)})` : ''}</span>
+          </div>
+          <div className="mon-bar"><div className={'mon-fill' + (over ? ' over' : done ? ' done' : '')} style={{ width: pct + '%' }} /></div>
+          <div className="mon-tk-foot"><span className={'mon-pillst ' + cls}>{txt}</span></div>
+        </div>
+      ) : pulled ? (
+        <div className="mon-tk-empty alert">⚠ {t('mon.st.abnormal')} · {pulled.id}</div>
+      ) : (
+        <div className="mon-tk-empty">{tank.acid ? t('mon.empty') : t('tank.dropLiquid')}</div>
+      )}
+    </div>
   )
 }
 
