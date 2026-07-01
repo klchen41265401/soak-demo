@@ -103,7 +103,7 @@ export function makeInitialState() {
     },
     tankOrder: ['SB1-A', 'SB1-B'],
     records: [], // 出槽紀錄（給監控站）
-    operatorTankId: 'SB1-A', // 現場螢幕看哪一槽
+    operatorBenchId: 'SB1', // 現場螢幕：一次顯示一個 Bench（Tank A/B 同時顯示）
     monitorTankId: 'SB1-A',
     toast: null, // { id, msg, en, type }
     logs: [], // 操作紀錄 { id, ts, zh, en, type }
@@ -175,7 +175,7 @@ function baseReducer(state, action) {
     }
 
     case 'SET_OPERATOR_VIEW':
-      return { ...state, operatorTankId: action.tankId }
+      return { ...state, operatorBenchId: action.benchId }
 
     case 'SET_MONITOR_TANK':
       return { ...state, monitorTankId: action.tankId }

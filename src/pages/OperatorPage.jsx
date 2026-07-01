@@ -1,5 +1,4 @@
-import { useState } from 'react'
-import { useStore, useT, scheduledRuncardFor, pulledAlertFor, allTanks } from '../store.jsx'
+import { useStore, useT, COLORS, PW, scheduledRuncardFor, pulledAlertFor, tanksInBench } from '../store.jsx'
 
 const fmt = (s) => {
   if (s == null) return '--:--'
@@ -8,67 +7,106 @@ const fmt = (s) => {
 }
 const clock = (ts) => (ts ? new Date(ts).toLocaleTimeString('zh-TW', { hour12: false }) : '--:--:--')
 
+// 現場螢幕：一次一個 Bench，Tank A/B 同時顯示（一個 Bench 一個螢幕）
 export default function OperatorPage() {
   const { state, dispatch } = useStore()
   const { t } = useT()
-  const [sideLeft, setSideLeft] = useState(false) // 黑/白兩區是否左右對調
+  const benches = state.benchOrder.map((id) => state.benches[id])
+  const curId = state.benches[state.operatorBenchId] ? state.operatorBenchId : state.benchOrder[0]
+  const bench = state.benches[curId]
+  const tanks = tanksInBench(state, curId)
 
-  const tanks = allTanks(state)
-  const tank = tanks.find((t) => t.id === state.operatorTankId) || tanks[0]
-  const bench = state.benches[tank.benchId]
+  return (
+    <div className="op2">
+      <header className="op2-top">
+        <div className="op2-benchtabs">
+          {benches.map((b) => (
+            <button
+              key={b.id}
+              className={'op2-benchtab' + (b.id === curId ? ' active' : '')}
+              onClick={() => dispatch({ type: 'SET_OPERATOR_VIEW', benchId: b.id })}
+            >
+              {b.name}
+            </button>
+          ))}
+        </div>
+        <div className="op2-now">
+          <span className="op2-now-label">{t('op.now')}</span>
+          <span className="op2-now-val mono">{clock(state.nowTs)}</span>
+        </div>
+      </header>
+
+      <div className={'op2-grid tanks-' + tanks.length}>
+        {tanks.length === 0 && <div className="op2-empty">{t('bench.dropHere')}</div>}
+        {tanks.map((tk) => (
+          <OpTank key={tk.id} tank={tk} />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function OpTank({ tank }) {
+  const { state } = useStore()
+  const { t } = useT()
   const rc = tank.runcardId ? state.runcards[tank.runcardId] : null
-  const pulled = tank.runcardId ? null : pulledAlertFor(state, tank.id) // 空槽且有零件被取出未放回
+  const pulled = tank.runcardId ? null : pulledAlertFor(state, tank.id)
   const scheduled = pulled ? null : scheduledRuncardFor(state, tank.id)
+  const part = rc || pulled || scheduled
+  const liquidColor = tank.acid ? COLORS[tank.acid] : '#94a3b8'
+  const overtime = tank.totalSec != null ? Math.max(0, (tank.elapsedSec || 0) - tank.totalSec) : 0
+  const abnormal = tank.abnormal
 
-  // 計時狀態與「異常」分開：異常只是疊加提示，不打斷計時
   let mode = 'idle' // idle | call | running | done | over | pulled
   if (tank.status === 'running') mode = 'running'
   else if (tank.status === 'done') mode = 'done'
   else if (tank.status === 'over') mode = 'over'
   else if (pulled) mode = 'pulled'
   else if (scheduled) mode = 'call'
-  const abnormal = tank.abnormal
-  const over = mode === 'over'
-  const overtime = tank.totalSec != null ? Math.max(0, (tank.elapsedSec || 0) - tank.totalSec) : 0
+  const alert = abnormal || mode === 'pulled' || mode === 'over'
 
-  const main = (
-    <div className="op-main" key="main">
-      <div className="op-toptime">
-        <span className="op-toptime-label">{t('op.total')}</span>
-        <span className="op-toptime-val">{fmt(tank.totalSec)}</span>
+  return (
+    <div className={'op2-tank mode-' + mode + (alert ? ' alert' : '') + (mode === 'done' ? ' ok' : '')}>
+      <div className="op2-tank-head">
+        <span className="op2-tank-name">{tank.label}</span>
+        {tank.acid ? (
+          <span className="op2-acid" style={{ background: liquidColor }}>
+            {tank.acid} {tank.acid === PW ? t('suffix.pw') : t('suffix.acid')}
+          </span>
+        ) : (
+          <span className="op2-acid empty">{t('tank.dropLiquid')}</span>
+        )}
+        <span className="op2-total">{t('op.total')} {fmt(tank.totalSec)}</span>
       </div>
 
-      {abnormal && (
-        <div className="op-abn-banner">⚠ {t('op.abnBanner')}</div>
-      )}
+      <div className="op2-tank-body">
+        {abnormal && <div className="op2-banner">⚠ {t('op.abnStatus')}</div>}
 
-      {mode === 'call' && (
-        <div className="op-big op-call">
-          <div className="op-big-zh">{t('op.placeReq')}</div>
-          <div className="op-big-rc">{scheduled.id}</div>
-        </div>
-      )}
-      {mode === 'pulled' && (
-        <div className="op-big op-abn">
-          <div className="op-big-zh">⚠ {t('op.pulledTitle')}</div>
-          <div className="op-big-rc">{t('op.pulledSub', { id: pulled.id })}</div>
-        </div>
-      )}
-      {(mode === 'running' || mode === 'done' || mode === 'over') && (
-        <div className="op-big">
-          <div className={'op-countdown' + (over || abnormal ? ' abn' : mode === 'done' ? ' ok' : '')}>{fmt(tank.elapsedSec)}</div>
-          {mode === 'over' && <div className="op-over-by">{t('op.overBy', { t: fmt(overtime) })}</div>}
-        </div>
-      )}
-      {mode === 'idle' && (
-        <div className="op-big op-idle">
-          <div className="op-big-zh">{t('op.idle')}</div>
-        </div>
-      )}
+        {mode === 'call' && (
+          <div className="op2-big op2-call">
+            <div className="op2-big-zh">{t('op.placeReq')}</div>
+            <div className="op2-big-rc">{scheduled.id}</div>
+          </div>
+        )}
+        {mode === 'pulled' && (
+          <div className="op2-big op2-alert">
+            <div className="op2-big-zh">⚠ {t('op.pulledTitle')}</div>
+            <div className="op2-big-rc">{t('op.pulledSub', { id: pulled.id })}</div>
+          </div>
+        )}
+        {(mode === 'running' || mode === 'done' || mode === 'over') && (
+          <div className="op2-big">
+            <div className="op2-time">{fmt(tank.elapsedSec)}</div>
+            {mode === 'over' && <div className="op2-overby">{t('op.overBy', { t: fmt(overtime) })}</div>}
+          </div>
+        )}
+        {mode === 'idle' && (
+          <div className="op2-big op2-idle">
+            <div className="op2-big-zh">{t('op.idle')}</div>
+          </div>
+        )}
 
-      <div className="op-status">
-        <div className="op-status-label">{t('op.statusLabel')}</div>
-        <div className={'op-status-val' + (over || abnormal || mode === 'pulled' ? ' abn' : '')}>
+        <div className="op2-status">
           {abnormal && t('op.abnStatus') + ' · '}
           {(mode === 'idle' || mode === 'call') && t('op.waiting')}
           {mode === 'running' && t('op.soaking')}
@@ -77,54 +115,19 @@ export default function OperatorPage() {
           {mode === 'pulled' && t('op.pulledStatus')}
         </div>
       </div>
-    </div>
-  )
 
-  const side = (
-    <aside className="op-side" key="side">
-      <div className="op-side-block">
-        <div className="op-side-title">{t('op.statusBar')}</div>
-        <div className="op-side-row"><span>{t('op.bench')}</span><b>{bench.name.replace('Soak Bench ', '')}</b></div>
-        <div className="op-side-row tank-row">
-          <span>{t('op.tank')}</span>
-          <span className="op-tanktabs">
-            {tanks.map((tk) => (
-              <button
-                key={tk.id}
-                className={'op-tanktab' + (tk.id === tank.id ? ' active' : '')}
-                onClick={() => dispatch({ type: 'SET_OPERATOR_VIEW', tankId: tk.id })}
-              >
-                {tk.label.replace('Tank ', '')}
-              </button>
-            ))}
-          </span>
-        </div>
-        <div className="op-side-row"><span>{t('op.liquid')}</span><b>{tank.acid || '—'}</b></div>
-        <div className="op-side-row"><span>{t('op.now')}</span><b className="mono">{clock(state.nowTs)}</b></div>
-      </div>
-
-      <div className="op-side-block">
-        <div className="op-side-title">{t('op.partInfo')}</div>
-        {rc || scheduled ? (
+      <div className="op2-part">
+        {part ? (
           <>
-            <div className="op-side-row"><span>Runcard</span><b className="mono">{(rc || scheduled).id}</b></div>
-            <div className="op-side-row"><span>PN</span><b className="mono">{(rc || scheduled).pn}</b></div>
-            <div className="op-side-row"><span>SN</span><b className="mono">{(rc || scheduled).sn}</b></div>
-            <div className="op-side-row"><span>{t('op.spec')}</span><b>{(rc || scheduled).requiredAcid}</b></div>
+            <div className="op2-part-row"><span>Runcard</span><b className="mono">{part.id}</b></div>
+            <div className="op2-part-row"><span>PN</span><b className="mono">{part.pn}</b></div>
+            <div className="op2-part-row"><span>SN</span><b className="mono">{part.sn}</b></div>
+            <div className="op2-part-row"><span>{t('op.spec')}</span><b style={{ color: COLORS[part.requiredAcid] }}>{part.requiredAcid}</b></div>
           </>
         ) : (
-          <div className="op-side-empty">{t('op.noPart')}</div>
+          <div className="op2-part-empty">{t('op.noPart')}</div>
         )}
       </div>
-    </aside>
-  )
-
-  return (
-    <div className={'op-screen mode-' + mode + (abnormal || mode === 'pulled' ? ' is-abnormal' : '') + (sideLeft ? ' side-left' : '')}>
-      <button className="op-swap" onClick={() => setSideLeft((v) => !v)} title={t('op.swap')}>
-        ⇄ {t('op.swap')}
-      </button>
-      {sideLeft ? [side, main] : [main, side]}
     </div>
   )
 }
