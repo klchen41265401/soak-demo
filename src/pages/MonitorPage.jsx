@@ -113,10 +113,12 @@ function PartRow({ tank, rc }) {
   const remaining = Math.max(0, total - elapsed)
   const overtime = Math.max(0, elapsed - total)
   const over = tank.status === 'over'
+  const done = tank.status === 'done'
   const pct = total ? Math.min(100, (elapsed / total) * 100) : 0
   let cls = 'p-soak', txt = t('mon.st.soaking'), rowCls = ''
   if (tank.abnormal) { cls = 'p-over'; txt = t('mon.st.abnormal'); rowCls = 'row-over' }
   else if (over) { cls = 'p-over'; txt = t('mon.st.over'); rowCls = 'row-over' }
+  else if (done) { cls = 'p-done'; txt = t('mon.st.done'); rowCls = 'row-done' }
   else if (remaining <= NEAR) { cls = 'p-near'; txt = t('mon.st.near') }
   return (
     <tr className={rowCls}>

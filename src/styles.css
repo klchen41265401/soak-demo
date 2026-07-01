@@ -156,18 +156,35 @@ button:focus-visible, .draggable:focus-visible { outline: none; box-shadow: var(
 .help-steps li:last-child { border-bottom: none; }
 
 /* onboarding coach（產線俯視圖首次引導）*/
-.runcard-pool.coaching { box-shadow: 0 0 0 2px var(--brand); animation: coachpulse 1.2s ease-in-out infinite; }
-@keyframes coachpulse { 50% { box-shadow: 0 0 0 5px rgba(15, 157, 143, .35); } }
+.runcard-pool.coaching { animation: poolflash 1s steps(1, end) infinite; }
+@keyframes poolflash {
+  0%, 100% { box-shadow: 0 0 0 2px var(--brand); }
+  50% { box-shadow: 0 0 0 5px rgba(15, 157, 143, .55); }
+}
 .coach {
   background: var(--brand); color: #fff; border-radius: var(--r-md); padding: 12px 14px; margin-bottom: 12px; text-align: center;
+  box-shadow: 0 6px 20px rgba(15, 157, 143, .4); animation: coachbob 1.1s ease-in-out infinite;
 }
-.coach-title { font-size: 17px; font-weight: 700; }
+@keyframes coachbob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+.coach-title { font-size: 18px; font-weight: 700; animation: coachblink 1s steps(1, end) infinite; }
+@keyframes coachblink { 50% { opacity: .55; } }
 .coach-body { font-size: 14.5px; margin-top: 4px; opacity: .95; line-height: 1.4; }
 .coach-dismiss {
   margin-top: 10px; font-family: var(--mono); font-size: 13.5px; font-weight: 700; padding: 6px 14px; cursor: pointer;
   background: #fff; color: var(--brand-2); border: none; border-radius: var(--r-sm);
 }
 .coach-dismiss:hover { background: #eafaf7; }
+
+/* 引導時：待處理區的 Runcard 卡片脈動發光「抓我」；依序錯開更活潑 */
+.runcard-pool.coaching .rc-chip { animation: grabme 1.15s ease-in-out infinite; }
+.runcard-pool.coaching .pool-list > .draggable:nth-child(2) .rc-chip { animation-delay: .12s; }
+.runcard-pool.coaching .pool-list > .draggable:nth-child(3) .rc-chip { animation-delay: .24s; }
+.runcard-pool.coaching .pool-list > .draggable:nth-child(4) .rc-chip { animation-delay: .36s; }
+.runcard-pool.coaching .pool-list > .draggable:nth-child(5) .rc-chip { animation-delay: .48s; }
+@keyframes grabme {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(15, 157, 143, 0); transform: translateX(0); }
+  50% { box-shadow: 0 0 0 3px var(--brand); transform: translateX(4px); }
+}
 
 /* ===================== drag / drop ===================== */
 .draggable { transition: transform .1s ease; }
@@ -276,6 +293,7 @@ button:focus-visible, .draggable:focus-visible { outline: none; box-shadow: var(
 .cd-label { font-size: 15px; color: var(--ink-2); font-weight: 500; }
 .cd-time { font-family: var(--mono); font-size: clamp(30px, 2.6vw, 38px); font-weight: 700; letter-spacing: 1px; margin: 5px 0; color: var(--ink); font-variant-numeric: tabular-nums; }
 .cd-time.run { color: #0e7490; }
+.cd-time.done { color: var(--emerald-deep); }
 .cd-time.over { color: #dc2626; }
 .cd-sub { font-size: 13.5px; font-weight: 700; color: var(--ink-3); margin-bottom: 3px; }
 .cd-status { font-size: 16px; font-weight: 700; color: var(--ink-2); }
@@ -380,6 +398,7 @@ button:focus-visible, .draggable:focus-visible { outline: none; box-shadow: var(
 .mode-over .op-countdown { color: #dc2626; }
 .mode-running .op-countdown { color: #0e7490; }
 .op-countdown.abn { color: #dc2626 !important; }
+.op-countdown.ok { color: var(--emerald-deep); }
 .op-status-val.abn { color: #dc2626; }
 .op-over-by { font-family: var(--mono); font-size: clamp(24px, 3vw, 40px); font-weight: 700; color: #dc2626; margin-top: 6px; }
 .op-big-zh { font-size: clamp(50px, 8.5vw, 108px); font-weight: 700; line-height: 1.08; }

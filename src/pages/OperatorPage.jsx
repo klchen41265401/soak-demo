@@ -21,8 +21,9 @@ export default function OperatorPage() {
   const scheduled = pulled ? null : scheduledRuncardFor(state, tank.id)
 
   // 計時狀態與「異常」分開：異常只是疊加提示，不打斷計時
-  let mode = 'idle' // idle | call | running | over | pulled
+  let mode = 'idle' // idle | call | running | done | over | pulled
   if (tank.status === 'running') mode = 'running'
+  else if (tank.status === 'done') mode = 'done'
   else if (tank.status === 'over') mode = 'over'
   else if (pulled) mode = 'pulled'
   else if (scheduled) mode = 'call'
@@ -53,9 +54,9 @@ export default function OperatorPage() {
           <div className="op-big-rc">{t('op.pulledSub', { id: pulled.id })}</div>
         </div>
       )}
-      {(mode === 'running' || mode === 'over') && (
+      {(mode === 'running' || mode === 'done' || mode === 'over') && (
         <div className="op-big">
-          <div className={'op-countdown' + (over || abnormal ? ' abn' : '')}>{fmt(tank.elapsedSec)}</div>
+          <div className={'op-countdown' + (over || abnormal ? ' abn' : mode === 'done' ? ' ok' : '')}>{fmt(tank.elapsedSec)}</div>
           {mode === 'over' && <div className="op-over-by">{t('op.overBy', { t: fmt(overtime) })}</div>}
         </div>
       )}
@@ -71,6 +72,7 @@ export default function OperatorPage() {
           {abnormal && t('op.abnStatus') + ' · '}
           {(mode === 'idle' || mode === 'call') && t('op.waiting')}
           {mode === 'running' && t('op.soaking')}
+          {mode === 'done' && t('op.ready')}
           {mode === 'over' && t('op.over')}
           {mode === 'pulled' && t('op.pulledStatus')}
         </div>

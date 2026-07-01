@@ -135,6 +135,7 @@ function TankCard({ tank }) {
   const scheduled = scheduledRuncardFor(state, tank.id)
   const liquidColor = tank.acid ? COLORS[tank.acid] : '#cbd5e1'
   const over = tank.status === 'over'
+  const done = tank.status === 'done'
   const overtime = tank.totalSec != null ? Math.max(0, (tank.elapsedSec || 0) - tank.totalSec) : 0
   const pct = tank.totalSec ? Math.min(100, ((tank.elapsedSec || 0) / tank.totalSec) * 100) : 0
 
@@ -155,7 +156,7 @@ function TankCard({ tank }) {
         {/* 計時碼表（正常往上計時，超時不停） */}
         <div className="countdown-box">
           <div className="cd-label">{t('tank.countdown')}</div>
-          <div className={'cd-time' + (over ? ' over' : tank.status === 'running' ? ' run' : '')}>
+          <div className={'cd-time' + (over ? ' over' : done ? ' done' : tank.status === 'running' ? ' run' : '')}>
             {tank.elapsedSec == null ? '--:--' : fmt(tank.elapsedSec)}
           </div>
           <div className="cd-sub">
@@ -167,12 +168,13 @@ function TankCard({ tank }) {
           </div>
           <div className="cd-status">
             {tank.status === 'running' && t('tank.soaking')}
+            {done && t('tank.ready')}
             {over && t('tank.over')}
             {tank.status === 'idle' && (scheduled ? t('tank.callPlace', { id: scheduled.id }) : t('tank.waiting'))}
           </div>
           {tank.totalSec != null && (
             <div className="cd-bar">
-              <div className="cd-fill" style={{ width: pct + '%', background: over ? '#dc2626' : liquidColor }} />
+              <div className="cd-fill" style={{ width: pct + '%', background: over ? '#dc2626' : done ? '#22c55e' : liquidColor }} />
             </div>
           )}
         </div>

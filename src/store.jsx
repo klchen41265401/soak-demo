@@ -72,7 +72,10 @@ const fmtSec = (s) => {
   s = Math.max(0, Math.round(s || 0))
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
 }
-const tankStatus = (elapsed, total) => (elapsed >= total ? 'over' : 'running')
+// 判定到「分」：達標後給 1 分鐘寬限（可取出/綠），超過 1 分鐘才算超時（紅）
+export const OVER_GRACE = 60
+const tankStatus = (elapsed, total) =>
+  elapsed >= total + OVER_GRACE ? 'over' : elapsed >= total ? 'done' : 'running'
 
 export function makeInitialState() {
   snSeq = 386000
@@ -308,9 +311,11 @@ function detachFromTank(state, rc, fromTank) {
   const total = t.totalSec || 0
   const elapsed = t.elapsedSec || 0
   const underTime = elapsed < total // 未達標就被取出 → 異常
-  const overtimeSec = Math.max(0, elapsed - total) // 超時秒數
+  const rawOver = Math.max(0, elapsed - total)
+  const isOver = rawOver >= OVER_GRACE // 只有超過 1 分鐘才算超時（1 分鐘內視為達標）
+  const overtimeSec = isOver ? rawOver : 0
   const wasAbnormal = underTime || rc.abnormal // 本次未達標取出，或本來就帶異常歷史
-  // 紀錄：出槽
+  // 紀錄：出槽（判定到「分」寬限）
   const record = {
     id: rc.id + '@' + Date.now() + Math.random(),
     rc: rc.id,
@@ -320,7 +325,7 @@ function detachFromTank(state, rc, fromTank) {
     reqSec: total,
     actualSec: elapsed,
     overtimeSec,
-    result: wasAbnormal ? 'abnormal' : overtimeSec > 0 ? 'over' : t.acid === PW ? 'rinse' : 'pass',
+    result: wasAbnormal ? 'abnormal' : isOver ? 'over' : t.acid === PW ? 'rinse' : 'pass',
     out: state.nowTs,
   }
   const newTank = { ...t, runcardId: null, status: 'idle', elapsedSec: null, totalSec: null, abnormal: false }
