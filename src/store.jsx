@@ -52,10 +52,11 @@ function makeRuncard(id, pn) {
   }
 }
 
-function makeTank(id, label) {
+function makeTank(id, label, benchId) {
   return {
     id,
     label,
+    benchId, // 目前所在的 Soak Bench（可拖動更換）
     acid: null, // 桶內液體（拖酸種瓶倒入）；一桶一酸
     runcardId: null,
     totalSec: null, // 要求浸泡秒（目標）
@@ -86,18 +87,19 @@ export function makeInitialState() {
   return {
     runcards: byId,
     order: runcards.map((r) => r.id),
+    // 兩個槽台（metadata）；Tank 為扁平結構、各自帶 benchId 可任意移動
     benches: {
-      SB1: {
-        id: 'SB1',
-        name: 'Soak Bench 1',
-        tanks: {
-          A: makeTank('SB1-A', 'Tank A'),
-          B: makeTank('SB1-B', 'Tank B'),
-        },
-      },
+      SB1: { id: 'SB1', name: 'Soak Bench 1' },
+      SB2: { id: 'SB2', name: 'Soak Bench 2' },
     },
+    benchOrder: ['SB1', 'SB2'],
+    tanks: {
+      'SB1-A': makeTank('SB1-A', 'Tank A', 'SB1'),
+      'SB1-B': makeTank('SB1-B', 'Tank B', 'SB1'),
+    },
+    tankOrder: ['SB1-A', 'SB1-B'],
     records: [], // 出槽紀錄（給監控站）
-    operatorView: { benchId: 'SB1', tankKey: 'A' }, // 現場螢幕看哪一槽
+    operatorTankId: 'SB1-A', // 現場螢幕看哪一槽
     monitorTankId: 'SB1-A',
     toast: null, // { id, msg, en, type }
     logs: [], // 操作紀錄 { id, ts, zh, en, type }
@@ -106,19 +108,11 @@ export function makeInitialState() {
   }
 }
 
-/* ---- 工具 ---- */
-const tankIdToRef = (state, tankId) => {
-  for (const bench of Object.values(state.benches)) {
-    for (const [key, tank] of Object.entries(bench.tanks)) {
-      if (tank.id === tankId) return { benchId: bench.id, key, tank }
-    }
-  }
-  return null
-}
-const allTanks = (state) =>
-  Object.values(state.benches).flatMap((b) =>
-    Object.entries(b.tanks).map(([key, t]) => ({ benchId: b.id, key, tank: t })),
-  )
+/* ---- 工具（扁平 tanks）---- */
+const getTank = (state, tankId) => state.tanks[tankId] || null
+const setTank = (state, tankId, tank) => ({ ...state, tanks: { ...state.tanks, [tankId]: tank } })
+const allTanks = (state) => state.tankOrder.map((id) => state.tanks[id]).filter(Boolean)
+const tanksInBench = (state, benchId) => state.tankOrder.map((id) => state.tanks[id]).filter((t) => t && t.benchId === benchId)
 
 let toastSeq = 0
 const toast = (msg, en, type = 'warn') => ({ id: ++toastSeq, msg, en, type })
@@ -156,25 +150,23 @@ function baseReducer(state, action) {
       return { ...state, lang: state.lang === 'zh' ? 'en' : 'zh' }
 
     case 'TICK': {
-      const benches = { ...state.benches }
+      const tanks = { ...state.tanks }
       let changed = false
-      for (const bench of Object.values(benches)) {
-        for (const key of Object.keys(bench.tanks)) {
-          const t = bench.tanks[key]
-          // 槽內有零件就持續往上計時（達標後不停，進入超時）
-          if (t.runcardId && t.elapsedSec != null) {
-            const el = t.elapsedSec + 1
-            bench.tanks[key] = { ...t, elapsedSec: el, status: tankStatus(el, t.totalSec) }
-            changed = true
-          }
+      for (const id of Object.keys(tanks)) {
+        const t = tanks[id]
+        // 槽內有零件就持續往上計時（達標後不停，進入超時）
+        if (t.runcardId && t.elapsedSec != null) {
+          const el = t.elapsedSec + 1
+          tanks[id] = { ...t, elapsedSec: el, status: tankStatus(el, t.totalSec) }
+          changed = true
         }
       }
       if (!changed) return { ...state, nowTs: action.ts }
-      return { ...state, benches: { ...benches }, nowTs: action.ts }
+      return { ...state, tanks, nowTs: action.ts }
     }
 
     case 'SET_OPERATOR_VIEW':
-      return { ...state, operatorView: { benchId: action.benchId, tankKey: action.tankKey } }
+      return { ...state, operatorTankId: action.tankId }
 
     case 'SET_MONITOR_TANK':
       return { ...state, monitorTankId: action.tankId }
@@ -195,38 +187,48 @@ function handleDrop(state, activeId, overId) {
   if (!activeId || !overId) return state
   const [aKind, aVal] = activeId.split(':')
 
+  /* ===== 拖「Tank」到某個 Soak Bench → 移動整個槽 ===== */
+  if (aKind === 'tank') {
+    let benchId = null
+    if (overId.startsWith('bench:')) benchId = overId.slice('bench:'.length)
+    else if (overId.startsWith('rcslot:')) benchId = getTank(state, overId.slice('rcslot:'.length))?.benchId
+    else if (overId.startsWith('acidslot:')) benchId = getTank(state, overId.slice('acidslot:'.length))?.benchId
+    if (!benchId) return state
+    return moveTank(state, aVal, benchId)
+  }
+
   /* ===== 從 tray 拖「酸種瓶」到 Tank 的 Acid/PW 區 ===== */
   if (aKind === 'acid') {
     if (!overId.startsWith('acidslot:')) return state
     const tankId = overId.slice('acidslot:'.length)
-    const ref = tankIdToRef(state, tankId)
-    if (!ref) return state
-    if (ref.tank.runcardId) {
+    const tank = getTank(state, tankId)
+    if (!tank) return state
+    if (tank.runcardId) {
       return { ...state, toast: toast('槽內有零件，無法換液', 'Tank occupied — cannot change liquid', 'error') }
     }
-    return setTankLiquid(state, ref, aVal)
+    return setTankLiquid(state, tankId, aVal)
   }
 
   /* ===== 拖「槽內已倒入的酸瓶」→ 倒掉 / 移到別槽 ===== */
   if (aKind === 'tankacid') {
     const fromId = aVal
-    const fromRef = tankIdToRef(state, fromId)
-    if (!fromRef) return state
-    if (fromRef.tank.runcardId) {
+    const from = getTank(state, fromId)
+    if (!from) return state
+    if (from.runcardId) {
       return { ...state, toast: toast('槽內有零件，無法移除液體', 'Tank occupied — cannot remove liquid', 'error') }
     }
     // 倒入另一個 Tank 的 Acid/PW 區 → 移動液體
     if (overId.startsWith('acidslot:')) {
       const toId = overId.slice('acidslot:'.length)
       if (toId === fromId) return state
-      const toRef = tankIdToRef(state, toId)
-      if (!toRef) return state
-      if (toRef.tank.runcardId) {
+      const to = getTank(state, toId)
+      if (!to) return state
+      if (to.runcardId) {
         return { ...state, toast: toast('目標槽有零件，無法換液', 'Target tank occupied', 'error') }
       }
-      const liquid = fromRef.tank.acid
+      const liquid = from.acid
       let s = emptyTankAcid(state, fromId, true)
-      s = setTankLiquid(s, tankIdToRef(s, toId), liquid)
+      s = setTankLiquid(s, toId, liquid)
       return s
     }
     // 拖到其他任何放置區 → 倒掉本槽液體
@@ -260,27 +262,32 @@ function handleDrop(state, activeId, overId) {
   return state
 }
 
-function setTankLiquid(state, ref, liquid) {
-  const bench = state.benches[ref.benchId]
-  const tank = { ...bench.tanks[ref.key], acid: liquid }
+// 移動整個 Tank 到另一個 Soak Bench
+function moveTank(state, tankId, benchId) {
+  const tank = getTank(state, tankId)
+  const bench = state.benches[benchId]
+  if (!tank || !bench || tank.benchId === benchId) return state
+  const s = setTank(state, tankId, { ...tank, benchId })
+  return { ...s, toast: toast(`${tank.label} 已移到 ${bench.name}`, `${tank.label} moved to ${bench.name}`, 'ok') }
+}
+
+function setTankLiquid(state, tankId, liquid) {
+  const tank0 = getTank(state, tankId)
+  if (!tank0) return state
+  const tank = { ...tank0, acid: liquid }
   const zhName = liquid === PW ? 'PW 超純水' : liquid
   const enName = liquid === PW ? 'PW water' : liquid
   return {
-    ...state,
-    benches: { ...state.benches, [ref.benchId]: { ...bench, tanks: { ...bench.tanks, [ref.key]: tank } } },
+    ...setTank(state, tankId, tank),
     toast: toast(`${tank.label} 已倒入 ${zhName}`, `${tank.label} filled with ${enName}`, 'ok'),
   }
 }
 
 function emptyTankAcid(state, tankId, silent) {
-  const ref = tankIdToRef(state, tankId)
-  if (!ref) return state
-  const bench = state.benches[ref.benchId]
-  const tank = { ...bench.tanks[ref.key], acid: null }
-  const s = {
-    ...state,
-    benches: { ...state.benches, [ref.benchId]: { ...bench, tanks: { ...bench.tanks, [ref.key]: tank } } },
-  }
+  const tank0 = getTank(state, tankId)
+  if (!tank0) return state
+  const tank = { ...tank0, acid: null }
+  const s = setTank(state, tankId, tank)
   if (silent) return s
   return { ...s, toast: toast(`${tank.label} 已倒掉液體`, `${tank.label} liquid emptied`, 'ok') }
 }
@@ -290,10 +297,8 @@ function emptyTankAcid(state, tankId, silent) {
 //                之後再放入任何 Tank 時可「接續計時」。
 let otSeq = 0
 function detachFromTank(state, rc, fromTank) {
-  const ref = tankIdToRef(state, fromTank)
-  if (!ref) return { state, abnormal: false }
-  const bench = state.benches[ref.benchId]
-  const t = bench.tanks[ref.key]
+  const t = getTank(state, fromTank)
+  if (!t) return { state, abnormal: false }
   const total = t.totalSec || 0
   const elapsed = t.elapsedSec || 0
   const underTime = elapsed < total // 未達標就被取出 → 異常
@@ -314,8 +319,7 @@ function detachFromTank(state, rc, fromTank) {
   }
   const newTank = { ...t, runcardId: null, status: 'idle', elapsedSec: null, totalSec: null, abnormal: false }
   let newState = {
-    ...state,
-    benches: { ...state.benches, [ref.benchId]: { ...bench, tanks: { ...bench.tanks, [ref.key]: newTank } } },
+    ...setTank(state, fromTank, newTank),
     records: [record, ...state.records],
   }
   // 超時取出 → 直接寫一筆 log（記錄超時多久）
@@ -429,9 +433,8 @@ function moveToHpw(state, rc, fromTank) {
 }
 
 function moveToTank(state, rc, tankId, fromTank) {
-  const ref = tankIdToRef(state, tankId)
-  if (!ref) return state
-  const tank = ref.tank
+  const tank = getTank(state, tankId)
+  if (!tank) return state
 
   // 流程關卡：強制 Signin → IQC → Tank
   if (!rc.signin || !rc.iqc) {
@@ -467,19 +470,15 @@ function moveToTank(state, rc, tankId, fromTank) {
   const resume = rcNow.elapsedSec != null
   const elapsed = resume ? rcNow.elapsedSec : 0
   const carryAbnormal = !!rcNow.abnormal
-  const bench = s.benches[ref.benchId]
   const newTank = {
-    ...bench.tanks[ref.key],
+    ...getTank(s, tankId),
     runcardId: rc.id,
     totalSec: rcNow.soakSec,
     elapsedSec: elapsed,
     status: tankStatus(elapsed, rcNow.soakSec),
     abnormal: carryAbnormal, // 異常提示跟著零件，繼續顯示
   }
-  s = {
-    ...s,
-    benches: { ...s.benches, [ref.benchId]: { ...bench, tanks: { ...bench.tanks, [ref.key]: newTank } } },
-  }
+  s = setTank(s, tankId, newTank)
   s = patchRc(s, rc.id, { location: tankId, elapsedSec: null }) // 已計時秒已交給 Tank
   const msg = resume
     ? carryAbnormal
@@ -501,20 +500,19 @@ export function readyRuncards(state) {
 
 // 某 tank 目前應呼叫哪一張 runcard 進來（排班）
 export function scheduledRuncardFor(state, tankId) {
-  const ref = tankIdToRef(state, tankId)
-  if (!ref || ref.tank.runcardId || !ref.tank.acid) return null
+  const tank = getTank(state, tankId)
+  if (!tank || tank.runcardId || !tank.acid) return null
   const ready = readyRuncards(state)
   const match = ready.find((r) =>
-    ref.tank.acid === PW ? r.acidSoaked : r.requiredAcid === ref.tank.acid,
+    tank.acid === PW ? r.acidSoaked : r.requiredAcid === tank.acid,
   )
   return match || null
 }
 
 export function findTank(state, tankId) {
-  const ref = tankIdToRef(state, tankId)
-  return ref ? ref.tank : null
+  return getTank(state, tankId)
 }
-export { allTanks }
+export { allTanks, tanksInBench }
 
 /* ---- 流程關卡：嚴格單向 Signin → IQC → 清洗區(Tank) → HPW ----
  * 不能回頭、不能跳站；清洗區(Tank) ↔ 移出區(removed) 可自由互換。 */
@@ -553,10 +551,17 @@ export function canDrop(state, activeId, overId) {
   if (!activeId || !overId) return false
   const [kind, val] = activeId.split(':')
 
+  // 拖 Tank → 任何「不是它目前所在」的 Soak Bench 皆可放
+  if (kind === 'tank') {
+    if (!overId.startsWith('bench:')) return false
+    const tank = getTank(state, val)
+    return !!tank && tank.benchId !== overId.slice('bench:'.length)
+  }
+
   if (kind === 'acid') {
     if (!overId.startsWith('acidslot:')) return false
-    const ref = tankIdToRef(state, overId.slice('acidslot:'.length))
-    return !!ref && !ref.tank.runcardId // 槽內無零件才能倒液
+    const tank = getTank(state, overId.slice('acidslot:'.length))
+    return !!tank && !tank.runcardId // 槽內無零件才能倒液
   }
 
   if (kind === 'tankacid') {
@@ -564,8 +569,8 @@ export function canDrop(state, activeId, overId) {
     if (overId.startsWith('acidslot:')) {
       const toId = overId.slice('acidslot:'.length)
       if (toId === val) return false
-      const ref = tankIdToRef(state, toId)
-      return !!ref && !ref.tank.runcardId
+      const tank = getTank(state, toId)
+      return !!tank && !tank.runcardId
     }
     return false
   }
@@ -576,9 +581,8 @@ export function canDrop(state, activeId, overId) {
     if (!flowAllows(rc, overId)) return false // 先過流程關卡（單向、不跳站）
     if (overId.startsWith('rcslot:')) {
       // 進清洗區還要過酸種/占用規則
-      const ref = tankIdToRef(state, overId.slice('rcslot:'.length))
-      if (!ref) return false
-      const tank = ref.tank
+      const tank = getTank(state, overId.slice('rcslot:'.length))
+      if (!tank) return false
       if (tank.runcardId && tank.runcardId !== rc.id) return false
       if (!tank.acid) return false
       if (tank.acid === PW) return rc.acidSoaked

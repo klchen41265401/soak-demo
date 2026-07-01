@@ -31,6 +31,7 @@ export const STR = {
   // ---- line page: zones ----
   'hpw.title': { zh: 'HPW 最終潤洗', en: 'HPW · Final Rinse' },
   'hpw.hint': { zh: '流程結束放置區，放入後解除所有標示', en: 'Drop here to finish — clears all marks' },
+  'bench.dropHere': { zh: '拖曳 Tank 到此槽台', en: 'Drag a tank here' },
   'station.drop': { zh: '拖入', en: 'Drop tag' },
   'pool.title': { zh: 'Runcard 待處理', en: 'Runcards' },
   'pool.empty': { zh: '（皆已上線）', en: '(all on line)' },

@@ -1,5 +1,5 @@
-import { useStore, useT, COLORS, ALL_LIQUIDS, PW, scheduledRuncardFor } from '../store.jsx'
-import { Droppable, RuncardChip, AcidChip, TankAcidBottle } from '../components/dnd.jsx'
+import { useStore, useT, COLORS, ALL_LIQUIDS, PW, scheduledRuncardFor, tanksInBench } from '../store.jsx'
+import { Droppable, RuncardChip, AcidChip, TankAcidBottle, TankHandle } from '../components/dnd.jsx'
 
 const fmt = (s) => {
   if (s == null) return '--:--'
@@ -10,7 +10,6 @@ const fmt = (s) => {
 export default function LinePage() {
   const { state } = useStore()
   const { t } = useT()
-  const bench = state.benches.SB1
   const at = (loc) => state.order.map((id) => state.runcards[id]).filter((r) => r.location === loc)
   const poolCards = at('pool')
   const hpwCards = at('hpw')
@@ -32,15 +31,11 @@ export default function LinePage() {
           </div>
         </Droppable>
 
-        {/* Soak Bench */}
-        <div className="bench">
-          <div className="bench-title">{bench.name}</div>
-          <div className="bench-tanks">
-            <TankCard tankKey="A" tank={bench.tanks.A} />
-            <TankCard tankKey="B" tank={bench.tanks.B} />
-          </div>
+        {/* Soak Bench 1 / 移出區 / Soak Bench 2（Tank 可在兩槽台間拖動） */}
+        <div className="bench-area">
+          <BenchPanel benchId="SB1" />
 
-          {/* 移出區：放在 Soak Bench 底下 */}
+          {/* 移出區：卡在 Soak Bench 1 / 2 中間 */}
           <Droppable id="zone:removed" accept={['rc']} className="removed-zone">
             <div className="tray-title removed-title">{t('removed.title')}</div>
             <div className="removed-hint">{t('removed.hint')}</div>
@@ -51,6 +46,8 @@ export default function LinePage() {
               ))}
             </div>
           </Droppable>
+
+          <BenchPanel benchId="SB2" />
         </div>
 
         {/* IQC */}
@@ -100,7 +97,26 @@ export default function LinePage() {
   )
 }
 
-function TankCard({ tankKey, tank }) {
+// 一個 Soak Bench：可放置 Tank 的容器（Tank 可拖入 / 拖出）
+function BenchPanel({ benchId }) {
+  const { state } = useStore()
+  const { t } = useT()
+  const bench = state.benches[benchId]
+  const tanks = tanksInBench(state, benchId)
+  return (
+    <Droppable id={'bench:' + benchId} accept={['tank']} className="bench">
+      <div className="bench-title">{bench.name}</div>
+      <div className="bench-tanks">
+        {tanks.length === 0 && <div className="bench-empty">{t('bench.dropHere')}</div>}
+        {tanks.map((tk) => (
+          <TankCard key={tk.id} tank={tk} />
+        ))}
+      </div>
+    </Droppable>
+  )
+}
+
+function TankCard({ tank }) {
   const { state } = useStore()
   const { t } = useT()
   const rc = tank.runcardId ? state.runcards[tank.runcardId] : null
@@ -113,6 +129,7 @@ function TankCard({ tankKey, tank }) {
   return (
     <div className={'tank' + (tank.abnormal ? ' abnormal' : '')}>
       <div className="tank-head">
+        <TankHandle tankId={tank.id} />
         <span className="tank-name">{tank.label}</span>
         {tank.acid && (
           <span className="tank-acid-badge" style={{ background: liquidColor }}>

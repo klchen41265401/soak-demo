@@ -204,13 +204,24 @@ button:focus-visible, .draggable:focus-visible { outline: none; box-shadow: var(
 .hpw-hint { color: var(--ink-3); font-size: 16px; margin-top: 10px; line-height: 1.6; }
 .hpw-cards { margin-top: auto; display: flex; flex-direction: column; gap: 8px; }
 
-/* bench */
+/* bench area：Soak Bench 1 / 移出區 / Soak Bench 2（直向堆疊）*/
+.bench-area { grid-area: bench; display: flex; flex-direction: column; gap: 14px; }
 .bench {
-  grid-area: bench; border-radius: var(--r-lg); padding: clamp(14px, 1.3vw, 20px);
+  border-radius: var(--r-lg); padding: clamp(14px, 1.3vw, 20px);
   background: #eef3e7; border: 1px solid #cfdcbe;
 }
 .bench-title { font-size: clamp(21px, 1.7vw, 25px); font-weight: 700; margin-bottom: 14px; }
 .bench-tanks { display: grid; grid-template-columns: 1fr; gap: 14px; }
+.bench-empty {
+  grid-column: 1 / -1; text-align: center; color: #6b7d52; font-size: 16px; font-weight: 700;
+  padding: 28px 12px; border: 2px dashed #b9cf99; border-radius: var(--r-md); background: #f4f8ee;
+}
+.tank-grip {
+  font-size: 18px; line-height: 1; color: var(--ink-3); padding: 2px 6px; border-radius: var(--r-sm);
+  border: 1px solid transparent; -webkit-user-select: none; user-select: none;
+}
+.tank-grip:hover { color: var(--ink); background: rgba(0, 0, 0, .05); border-color: var(--border-strong); }
+.tank-ghost { display: inline-flex; align-items: center; gap: 6px; background: var(--ink); color: #fff; }
 
 .tank {
   border-radius: var(--r-md); padding: clamp(11px, 1vw, 15px);

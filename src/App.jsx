@@ -196,10 +196,7 @@ function DragGhost({ id, state }) {
     )
   }
   if (kind === 'tankacid') {
-    // val = tankId；找出該槽液體顏色
-    let liquid = null
-    for (const b of Object.values(state.benches))
-      for (const tk of Object.values(b.tanks)) if (tk.id === val) liquid = tk.acid
+    const liquid = state.tanks[val]?.acid
     if (!liquid) return null
     return (
       <div className="ghost acid-ghost" style={{ borderColor: COLORS[liquid] }}>
@@ -207,6 +204,10 @@ function DragGhost({ id, state }) {
         {liquid}{suffix(liquid)}
       </div>
     )
+  }
+  if (kind === 'tank') {
+    const tk = state.tanks[val]
+    return <div className="ghost tank-ghost">⠿ {tk?.label}</div>
   }
   return null
 }

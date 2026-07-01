@@ -12,13 +12,12 @@ export default function MonitorPage() {
   const { state, dispatch } = useStore()
   const { t } = useT()
   const tanks = allTanks(state)
-  const selId = tanks.some((t) => t.tank.id === state.monitorTankId) ? state.monitorTankId : tanks[0].tank.id
-  const sel = tanks.find((t) => t.tank.id === selId)
-  const tank = sel.tank
-  const bench = state.benches[sel.benchId]
+  const selId = tanks.some((t) => t.id === state.monitorTankId) ? state.monitorTankId : tanks[0].id
+  const tank = tanks.find((t) => t.id === selId)
+  const bench = state.benches[tank.benchId]
   const rc = tank.runcardId ? state.runcards[tank.runcardId] : null
 
-  const abnormalCount = tanks.filter((t) => t.tank.abnormal).length
+  const abnormalCount = tanks.filter((t) => t.abnormal).length
 
   return (
     <div className="mon">
@@ -43,13 +42,13 @@ export default function MonitorPage() {
       )}
 
       <div className="mon-tankbar">
-        {tanks.map(({ tank: tk, benchId }) => (
+        {tanks.map((tk) => (
           <button
             key={tk.id}
             className={'mon-tankbtn' + (tk.id === selId ? ' active' : '')}
             onClick={() => dispatch({ type: 'SET_MONITOR_TANK', tankId: tk.id })}
           >
-            <span className="mtb-name">{state.benches[benchId].name} · {tk.label}</span>
+            <span className="mtb-name">{state.benches[tk.benchId].name} · {tk.label}</span>
             <span className="mtb-acid">{t('mon.liquid')} {tk.acid || '—'}</span>
             <span className="mtb-cnt">{tk.runcardId ? t('mon.inTank') : t('mon.empty')}{tk.abnormal ? ' · ' + t('mon.abnTag') : ''}</span>
           </button>

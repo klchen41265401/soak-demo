@@ -66,6 +66,22 @@ export function RuncardChip({ rc, draggable = true, compact = false }) {
   return <Draggable id={'rc:' + rc.id}>{body}</Draggable>
 }
 
+/* Tank 拖動把手（只有這個小握把可拖，避免和槽內的拖放衝突） */
+export function TankHandle({ tankId }) {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: 'tank:' + tankId })
+  return (
+    <span
+      ref={setNodeRef}
+      {...listeners}
+      {...attributes}
+      className={'tank-grip' + (isDragging ? ' dragging' : '')}
+      style={{ touchAction: 'none', cursor: 'grab', opacity: isDragging ? 0.4 : 1 }}
+    >
+      ⠿
+    </span>
+  )
+}
+
 /* 酸種瓶籌碼 Acid bottle chip（tray 內的來源） */
 export function AcidChip({ liquid }) {
   const { t } = useT()

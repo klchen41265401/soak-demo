@@ -14,10 +14,8 @@ export default function OperatorPage() {
   const [sideLeft, setSideLeft] = useState(false) // 黑/白兩區是否左右對調
 
   const tanks = allTanks(state)
-  const curId = findCurrentId(state)
-  const cur = tanks.find((t) => t.tank.id === curId) || tanks[0]
-  const tank = cur.tank
-  const bench = state.benches[cur.benchId]
+  const tank = tanks.find((t) => t.id === state.operatorTankId) || tanks[0]
+  const bench = state.benches[tank.benchId]
   const rc = tank.runcardId ? state.runcards[tank.runcardId] : null
   const scheduled = scheduledRuncardFor(state, tank.id)
 
@@ -81,11 +79,11 @@ export default function OperatorPage() {
           <span className="op-tanktabs">
             {tanks.map((tk) => (
               <button
-                key={tk.tank.id}
-                className={'op-tanktab' + (tk.tank.id === curId ? ' active' : '')}
-                onClick={() => dispatch({ type: 'SET_OPERATOR_VIEW', benchId: tk.benchId, tankKey: tk.key })}
+                key={tk.id}
+                className={'op-tanktab' + (tk.id === tank.id ? ' active' : '')}
+                onClick={() => dispatch({ type: 'SET_OPERATOR_VIEW', tankId: tk.id })}
               >
-                {tk.tank.label.replace('Tank ', '')}
+                {tk.label.replace('Tank ', '')}
               </button>
             ))}
           </span>
@@ -118,11 +116,4 @@ export default function OperatorPage() {
       {sideLeft ? [side, main] : [main, side]}
     </div>
   )
-}
-
-function findCurrentId(state) {
-  const b = state.benches[state.operatorView.benchId]
-  if (!b) return null
-  const t = b.tanks[state.operatorView.tankKey]
-  return t ? t.id : null
 }
