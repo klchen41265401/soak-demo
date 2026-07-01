@@ -38,7 +38,7 @@ export default function App() {
       onDragEnd={onDragEnd}
       onDragCancel={() => setActiveId(null)}
     >
-      <div className="app">
+      <div className="app" data-theme={state.theme}>
         <header className="topnav">
           <div className="brand">
             <span className="brand-logo">⚗︎</span>
@@ -57,6 +57,9 @@ export default function App() {
           <button className="log-btn" onClick={() => setShowLog(true)}>
             ▤ {t('btn.log')}{state.logs.length ? ` (${state.logs.length})` : ''}
           </button>
+          <button className="theme-btn" onClick={() => dispatch({ type: 'TOGGLE_THEME' })} title="Day / Night">
+            {state.theme === 'light' ? '🌙 ' + t('btn.toDark') : '☀ ' + t('btn.toLight')}
+          </button>
           <button className="lang-btn" onClick={() => dispatch({ type: 'TOGGLE_LANG' })} title="中 / EN">
             🌐 {t('btn.lang')}
           </button>
@@ -67,7 +70,7 @@ export default function App() {
 
         {showLog && <LogPanel onClose={() => setShowLog(false)} />}
 
-        <main className="page">
+        <main className={'page page-' + tab}>
           {tab === 'line' && <LinePage />}
           {tab === 'operator' && <OperatorPage />}
           {tab === 'monitor' && <MonitorPage />}

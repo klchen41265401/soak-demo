@@ -14,6 +14,8 @@ export const STR = {
   'btn.reset': { zh: '重置', en: 'Reset' },
   'btn.lang': { zh: 'EN', en: '中文' }, // 按鈕顯示「切換到的語言」
   'btn.log': { zh: '紀錄', en: 'Log' },
+  'btn.toDark': { zh: '夜間', en: 'Night' }, // 按鈕顯示「切換到的模式」
+  'btn.toLight': { zh: '日間', en: 'Day' },
 
   // ---- log panel ----
   'log.title': { zh: '操作紀錄', en: 'Activity Log' },

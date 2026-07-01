@@ -105,6 +105,7 @@ export function makeInitialState() {
     logs: [], // 操作紀錄 { id, ts, zh, en, type }
     nowTs: 0,
     lang: 'zh', // 'zh' | 'en'
+    theme: 'light', // 'light' | 'dark'（日 / 夜）
   }
 }
 
@@ -135,10 +136,11 @@ function reducer(state, action) {
 function baseReducer(state, action) {
   switch (action.type) {
     case 'RESET':
-      // 語言與操作紀錄為 UI 層，重置不還原；並記一筆「已重置」
+      // 語言 / 主題 / 操作紀錄為 UI 層，重置不還原；並記一筆「已重置」
       return {
         ...makeInitialState(),
         lang: state.lang,
+        theme: state.theme,
         logs: state.logs,
         toast: toast('已重置全部狀態', 'All state reset', 'ok'),
       }
@@ -148,6 +150,9 @@ function baseReducer(state, action) {
 
     case 'TOGGLE_LANG':
       return { ...state, lang: state.lang === 'zh' ? 'en' : 'zh' }
+
+    case 'TOGGLE_THEME':
+      return { ...state, theme: state.theme === 'light' ? 'dark' : 'light' }
 
     case 'TICK': {
       const tanks = { ...state.tanks }

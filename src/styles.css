@@ -60,7 +60,7 @@ button:focus-visible, .draggable:focus-visible { outline: none; box-shadow: var(
 .mono { font-family: var(--mono); }
 
 /* ===================== top nav ===================== */
-.app { min-height: 100vh; display: flex; flex-direction: column; }
+.app { min-height: 100vh; display: flex; flex-direction: column; background: var(--bg); }
 .topnav {
   display: flex; align-items: center; gap: clamp(12px, 1.6vw, 26px);
   padding: 11px clamp(14px, 2.4vw, 40px);
@@ -101,7 +101,15 @@ button:focus-visible, .draggable:focus-visible { outline: none; box-shadow: var(
 }
 .log-btn:hover { background: var(--ink); color: #fff; border-color: var(--ink); }
 .log-btn:active { transform: translateY(1px); }
+.theme-btn {
+  font-family: var(--mono); font-size: 16.5px; font-weight: 700; padding: 9px 15px; cursor: pointer; white-space: nowrap;
+  background: var(--surface); color: var(--ink-2); border: 1px solid var(--border-strong); border-radius: var(--r-md); transition: .12s ease;
+}
+.theme-btn:hover { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.theme-btn:active { transform: translateY(1px); }
 .page { flex: 1; width: 100%; padding: clamp(14px, 2.2vw, 34px); }
+/* 監控站分頁：navbar 以下整片暗色（不論日/夜） */
+.page-monitor { background: #0b0f16; }
 
 /* ===================== log modal（全螢幕）===================== */
 .log-overlay { position: fixed; inset: 0; z-index: 200; background: rgba(6, 10, 18, .62); display: flex; align-items: center; justify-content: center; padding: clamp(8px, 3vw, 40px); animation: dimin .14s ease; }
@@ -449,6 +457,69 @@ button:focus-visible, .draggable:focus-visible { outline: none; box-shadow: var(
 .toast.error { background: #fef2f2; border: 1px solid #fca5a5; color: #b91c1c; }
 .toast-zh { font-weight: 700; font-size: 18px; }
 .toast-en { font-size: 15.5px; opacity: .72; margin-top: 2px; font-family: var(--mono); }
+
+/* =========================================================================
+ *  DARK THEME（夜間）— 只覆蓋 Line / Operator 需要的面板與提示色；
+ *  Monitor 本身恆為暗色（監控牆特性），僅其外圍 page 已處理。
+ * ========================================================================= */
+[data-theme='dark'] {
+  --bg: #0b0f16;
+  --surface: #141b25;
+  --surface-2: #19212d;
+  --surface-3: #1e2836;
+  --border: #283340;
+  --border-strong: #384656;
+  --ink: #e7edf4;
+  --ink-2: #9aa7b8;
+  --ink-3: #6f7a8b;
+}
+
+/* nav：作用中分頁改品牌色（避免亮底白字看不到）*/
+[data-theme='dark'] .tab.active { background: var(--brand); color: #fff; }
+[data-theme='dark'] .lang-btn { color: #5eead4; border-color: #1d5a51; }
+[data-theme='dark'] .reset-btn { color: #fb7185; border-color: #6a2a30; }
+
+/* zones / bench */
+[data-theme='dark'] .hpw-zone { background: #131e29; border-color: #26333f; }
+[data-theme='dark'] .bench { background: #14201a; border-color: #2a3a28; }
+[data-theme='dark'] .bench-empty { background: #182619; border-color: #33482f; color: #a3c184; }
+[data-theme='dark'] .tank { background: #17261a; border-color: #2f4430; }
+[data-theme='dark'] .tank-grip:hover { background: rgba(255, 255, 255, .08); }
+
+/* countdown */
+[data-theme='dark'] .countdown-box { background: #11242e; border-color: #234a58; }
+[data-theme='dark'] .cd-bar { background: #0b1620; border-color: #234a58; }
+[data-theme='dark'] .cd-time.run { color: #38bdf8; }
+
+/* runcard slot（綠）*/
+[data-theme='dark'] .rc-slot { background: #102b21; border-color: #2f9e6e; }
+[data-theme='dark'] .rc-slot.filled { background: #14392b; }
+[data-theme='dark'] .slot-label { color: #6ee7b7; }
+[data-theme='dark'] .slot-empty { color: #4fd6a0; }
+[data-theme='dark'] .slot-call { color: #8ff0c4; }
+
+/* acid slot */
+[data-theme='dark'] .acid-slot { background: #241f0f; }
+
+/* stations */
+[data-theme='dark'] .iqc-zone { background: #241d0d; border-color: #5a481c; }
+[data-theme='dark'] .signin-zone { background: #271317; border-color: #66272e; }
+[data-theme='dark'] .iqc-zone .station-hint { color: #fbbf24; }
+[data-theme='dark'] .signin-zone .station-hint { color: #fb7185; }
+
+/* tray / pool / removal */
+[data-theme='dark'] .runcard-pool { background: #1b1730; border-color: #392f5a; }
+[data-theme='dark'] .removed-zone { background: #271416; border-color: #6a3a40; }
+[data-theme='dark'] .removed-title { color: #fb7185; }
+[data-theme='dark'] .removed-hint { color: #e79aa6; }
+
+/* operator */
+[data-theme='dark'] .op-screen.is-abnormal { background: #241417; }
+
+/* toast */
+[data-theme='dark'] .toast.ok { background: #0f261c; border-color: #1d5a51; color: #6ee7b7; }
+[data-theme='dark'] .toast.warn { background: #2a2410; border-color: #6b5113; color: #fcd34d; }
+[data-theme='dark'] .toast.error { background: #2a1418; border-color: #7a2a30; color: #fca5a5; }
 
 /* =========================================================================
  *  RESPONSIVE LADDER
