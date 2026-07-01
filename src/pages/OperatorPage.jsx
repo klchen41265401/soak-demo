@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useStore, useT, scheduledRuncardFor, allTanks } from '../store.jsx'
+import { useStore, useT, scheduledRuncardFor, pulledAlertFor, allTanks } from '../store.jsx'
 
 const fmt = (s) => {
   if (s == null) return '--:--'
@@ -17,12 +17,14 @@ export default function OperatorPage() {
   const tank = tanks.find((t) => t.id === state.operatorTankId) || tanks[0]
   const bench = state.benches[tank.benchId]
   const rc = tank.runcardId ? state.runcards[tank.runcardId] : null
-  const scheduled = scheduledRuncardFor(state, tank.id)
+  const pulled = tank.runcardId ? null : pulledAlertFor(state, tank.id) // 空槽且有零件被取出未放回
+  const scheduled = pulled ? null : scheduledRuncardFor(state, tank.id)
 
   // 計時狀態與「異常」分開：異常只是疊加提示，不打斷計時
-  let mode = 'idle' // idle | call | running | over
+  let mode = 'idle' // idle | call | running | over | pulled
   if (tank.status === 'running') mode = 'running'
   else if (tank.status === 'over') mode = 'over'
+  else if (pulled) mode = 'pulled'
   else if (scheduled) mode = 'call'
   const abnormal = tank.abnormal
   const over = mode === 'over'
@@ -45,6 +47,12 @@ export default function OperatorPage() {
           <div className="op-big-rc">{scheduled.id}</div>
         </div>
       )}
+      {mode === 'pulled' && (
+        <div className="op-big op-abn">
+          <div className="op-big-zh">⚠ {t('op.pulledTitle')}</div>
+          <div className="op-big-rc">{t('op.pulledSub', { id: pulled.id })}</div>
+        </div>
+      )}
       {(mode === 'running' || mode === 'over') && (
         <div className="op-big">
           <div className={'op-countdown' + (over || abnormal ? ' abn' : '')}>{fmt(tank.elapsedSec)}</div>
@@ -59,11 +67,12 @@ export default function OperatorPage() {
 
       <div className="op-status">
         <div className="op-status-label">{t('op.statusLabel')}</div>
-        <div className={'op-status-val' + (over || abnormal ? ' abn' : '')}>
+        <div className={'op-status-val' + (over || abnormal || mode === 'pulled' ? ' abn' : '')}>
           {abnormal && t('op.abnStatus') + ' · '}
           {(mode === 'idle' || mode === 'call') && t('op.waiting')}
           {mode === 'running' && t('op.soaking')}
           {mode === 'over' && t('op.over')}
+          {mode === 'pulled' && t('op.pulledStatus')}
         </div>
       </div>
     </div>
@@ -109,7 +118,7 @@ export default function OperatorPage() {
   )
 
   return (
-    <div className={'op-screen mode-' + mode + (abnormal ? ' is-abnormal' : '') + (sideLeft ? ' side-left' : '')}>
+    <div className={'op-screen mode-' + mode + (abnormal || mode === 'pulled' ? ' is-abnormal' : '') + (sideLeft ? ' side-left' : '')}>
       <button className="op-swap" onClick={() => setSideLeft((v) => !v)} title={t('op.swap')}>
         ⇄ {t('op.swap')}
       </button>

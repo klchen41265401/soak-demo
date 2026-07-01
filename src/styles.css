@@ -357,6 +357,8 @@ button:focus-visible, .draggable:focus-visible { outline: none; box-shadow: var(
 .op-big-en { font-size: clamp(22px, 2.4vw, 34px); color: var(--ink-3); margin-top: 8px; letter-spacing: 1px; }
 .op-big-rc { font-family: var(--mono); font-size: clamp(34px, 4.5vw, 60px); font-weight: 700; margin-top: 12px; color: var(--brand-2); }
 .op-call .op-big-zh { color: var(--brand-2); }
+.op-abn { animation: abnflash 1s steps(1, end) infinite; }
+.op-abn .op-big-zh, .op-abn .op-big-rc { color: #dc2626; }
 @keyframes abnflash { 50% { opacity: .5; } }
 .op-idle .op-big-zh { color: var(--ink-3); }
 .op-status { text-align: center; }

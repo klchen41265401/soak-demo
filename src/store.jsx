@@ -47,6 +47,7 @@ function makeRuncard(id, pn) {
     acidSoaked: false, // 是否已泡過酸（PW 槽前置條件）
     abnormal: false, // 曾在未達標時被移出 → 異常（持續提示，直到進 HPW / 重置）
     elapsedSec: null, // 被移出時保留的已計時秒，再放入時接續往上計時
+    pulledFromTank: null, // 最近一次被（異常）取出的來源 Tank；仍在槽外時該槽會警告「請放回」
     location: 'pool', // pool | signin | iqc | <tankId> | hpw | removed
     done: false,
   }
@@ -345,6 +346,7 @@ function detachFromTank(state, rc, fromTank) {
     rcPatch.abnormal = true
     rcPatch.elapsedSec = elapsed // 保留已計時秒，再放入時接續往上計時
   }
+  if (wasAbnormal) rcPatch.pulledFromTank = fromTank // 記住來源槽 → 該槽現場螢幕警告「請放回」
   if (!underTime && t.acid && t.acid !== PW) rcPatch.acidSoaked = true // 完成酸泡
   if (Object.keys(rcPatch).length) newState = patchRc(newState, rc.id, rcPatch)
   return { state: newState, abnormal: underTime }
@@ -433,6 +435,7 @@ function moveToHpw(state, rc, fromTank) {
     acidSoaked: false,
     abnormal: false,
     elapsedSec: null,
+    pulledFromTank: null,
   })
   return { ...s, toast: toast(`${rc.id} 已進入 HPW，流程結束`, `${rc.id} entered HPW — flow complete`, 'ok') }
 }
@@ -484,7 +487,7 @@ function moveToTank(state, rc, tankId, fromTank) {
     abnormal: carryAbnormal, // 異常提示跟著零件，繼續顯示
   }
   s = setTank(s, tankId, newTank)
-  s = patchRc(s, rc.id, { location: tankId, elapsedSec: null }) // 已計時秒已交給 Tank
+  s = patchRc(s, rc.id, { location: tankId, elapsedSec: null, pulledFromTank: null }) // 已計時秒交給 Tank；回到槽內 → 清除「請放回」
   const msg = resume
     ? carryAbnormal
       ? toast(`${rc.id} 放入 ${tank.label}，接續計時（異常提示中）`, `${rc.id} resumed in ${tank.label} (abnormal flagged)`, 'warn')
@@ -512,6 +515,15 @@ export function scheduledRuncardFor(state, tankId) {
     tank.acid === PW ? r.acidSoaked : r.requiredAcid === tank.acid,
   )
   return match || null
+}
+
+// 某 tank 是否有「被取出、尚未放回任何槽」的異常零件 → 現場螢幕警告請放回 / 未偵測到 tag
+export function pulledAlertFor(state, tankId) {
+  return (
+    Object.values(state.runcards).find(
+      (r) => r.abnormal && !r.done && r.pulledFromTank === tankId && !state.tanks[r.location],
+    ) || null
+  )
 }
 
 export function findTank(state, tankId) {

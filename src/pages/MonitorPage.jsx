@@ -18,6 +18,8 @@ export default function MonitorPage() {
   const rc = tank.runcardId ? state.runcards[tank.runcardId] : null
 
   const abnormalCount = tanks.filter((t) => t.abnormal).length
+  // 被取出、尚未放回任何槽的異常零件
+  const pulledCount = Object.values(state.runcards).filter((r) => r.abnormal && !r.done && !state.tanks[r.location]).length
 
   return (
     <div className="mon">
@@ -35,9 +37,10 @@ export default function MonitorPage() {
         </div>
       </div>
 
-      {abnormalCount > 0 && (
+      {(abnormalCount > 0 || pulledCount > 0) && (
         <div className="mon-banner">
-          ⚠ <b>{abnormalCount}</b> {t('mon.bannerAbn')}
+          {abnormalCount > 0 && <span>⚠ <b>{abnormalCount}</b> {t('mon.bannerAbn')}</span>}
+          {pulledCount > 0 && <span>{abnormalCount > 0 ? '　／　' : '⚠ '}<b>{pulledCount}</b> {t('mon.bannerPulled')}</span>}
         </div>
       )}
 
