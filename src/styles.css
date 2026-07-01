@@ -93,6 +93,12 @@ button:focus-visible, .draggable:focus-visible { outline: none; box-shadow: var(
   50% { box-shadow: 0 0 0 7px rgba(220, 38, 38, 0), 0 0 20px 5px rgba(220, 38, 38, .9); }
 }
 .help-btn:hover { background: #b91c1c; animation: none; box-shadow: 0 0 0 3px rgba(220, 38, 38, .3); }
+.soak-set { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--r-md); white-space: nowrap; cursor: text; }
+.soak-ico { font-size: 15px; }
+.soak-lbl { font-size: 14px; font-weight: 700; color: var(--ink-2); }
+.soak-input { width: 58px; font-family: var(--mono); font-size: 15px; font-weight: 700; text-align: center; color: var(--ink); background: var(--surface-3); border: 1px solid var(--border-strong); border-radius: var(--r-sm); padding: 4px 6px; }
+.soak-input:focus-visible { outline: none; box-shadow: var(--ring); }
+.soak-unit { font-size: 14px; color: var(--ink-3); }
 .reset-btn {
   font-family: var(--mono); font-size: 16.5px; font-weight: 700; padding: 9px 16px; cursor: pointer; white-space: nowrap;
   background: var(--surface); color: #dc2626; border: 1px solid #e9b4ba; border-radius: var(--r-md); transition: .12s ease;

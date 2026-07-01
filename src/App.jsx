@@ -96,6 +96,19 @@ export default function App() {
           <button className="help-btn" onClick={() => setShowHelp(true)} title={t('btn.help')} aria-label="help">
             ?
           </button>
+          <label className="soak-set" title={t('set.soakTitle')}>
+            <span className="soak-ico">⏱</span>
+            <span className="soak-lbl">{t('set.soakLabel')}</span>
+            <input
+              className="soak-input"
+              type="number"
+              min="3"
+              max="3600"
+              value={state.defaultSoakSec}
+              onChange={(e) => dispatch({ type: 'SET_SOAK_SEC', sec: Number(e.target.value) })}
+            />
+            <span className="soak-unit">{t('set.sec')}</span>
+          </label>
           <button className="rules-btn" onClick={() => setShowRules(true)}>
             📋 {t('btn.rules')}
           </button>

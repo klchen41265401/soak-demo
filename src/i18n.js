@@ -18,6 +18,9 @@ export const STR = {
   'btn.toDark': { zh: '夜間', en: 'Night' }, // 按鈕顯示「切換到的模式」
   'btn.toLight': { zh: '日間', en: 'Day' },
   'btn.help': { zh: '本頁說明', en: 'What is this page?' },
+  'set.soakLabel': { zh: '浸泡', en: 'Soak' },
+  'set.sec': { zh: '秒', en: 's' },
+  'set.soakTitle': { zh: '全域浸泡秒數（所有 Runcard 共用，可自訂）', en: 'Global soak seconds (all runcards; editable)' },
 
   // 首次進站引導
   'coach.title': { zh: '從這裡開始 👇', en: 'Start here 👇' },

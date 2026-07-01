@@ -55,7 +55,9 @@ const PART_DB = {
 let snSeq = 386000
 const newSn = () => 'SN-' + ++snSeq
 
-function makeRuncard(id, pn) {
+export const DEFAULT_SOAK_SEC = 30 // 全域預設浸泡秒數（所有 Runcard 共用，可於畫面調整）
+
+function makeRuncard(id, pn, soakSec = DEFAULT_SOAK_SEC) {
   const spec = PART_DB[pn]
   return {
     id,
@@ -63,7 +65,7 @@ function makeRuncard(id, pn) {
     sn: newSn(),
     partName: spec.name,
     requiredAcid: spec.acid, // 規格酸種（固定徽章）
-    soakSec: spec.soakSec, // 要求浸泡秒
+    soakSec, // 要求浸泡秒（全域預設，所有 Runcard 共用）
     signin: false,
     iqc: false,
     acidSoaked: false, // 是否已泡過酸（PW 槽前置條件）
@@ -131,6 +133,7 @@ export function makeInitialState() {
     records: [], // 出槽紀錄（給監控站）
     operatorBenchId: 'SB1', // 現場螢幕：一次顯示一個 Bench（Tank A/B 同時顯示）
     monitorTankId: 'SB1-A',
+    defaultSoakSec: DEFAULT_SOAK_SEC, // 全域浸泡秒數（可調）
     toast: null, // { id, msg, en, type }
     logs: [], // 操作紀錄 { id, ts, zh, en, type }
     nowTs: 0,
@@ -165,15 +168,22 @@ function reducer(state, action) {
 
 function baseReducer(state, action) {
   switch (action.type) {
-    case 'RESET':
-      // 語言 / 主題 / 操作紀錄為 UI 層，重置不還原；並記一筆「已重置」
+    case 'RESET': {
+      // 語言 / 主題 / 浸泡秒數 / 操作紀錄為設定層，重置不還原；並記一筆「已重置」
+      const base = makeInitialState()
+      const sec = state.defaultSoakSec
+      const runcards = {}
+      for (const id of Object.keys(base.runcards)) runcards[id] = { ...base.runcards[id], soakSec: sec }
       return {
-        ...makeInitialState(),
+        ...base,
+        runcards,
+        defaultSoakSec: sec,
         lang: state.lang,
         theme: state.theme,
         logs: state.logs,
         toast: toast('已重置全部狀態', 'All state reset', 'ok'),
       }
+    }
 
     case 'CLEAR_LOGS':
       return { ...state, logs: [] }
@@ -183,6 +193,14 @@ function baseReducer(state, action) {
 
     case 'TOGGLE_THEME':
       return { ...state, theme: state.theme === 'light' ? 'dark' : 'light' }
+
+    case 'SET_SOAK_SEC': {
+      const sec = Math.max(3, Math.min(3600, Math.round(action.sec || 0))) // 3s ~ 60min
+      // 全部 Runcard 都吃這個倒數
+      const runcards = {}
+      for (const id of Object.keys(state.runcards)) runcards[id] = { ...state.runcards[id], soakSec: sec }
+      return { ...state, defaultSoakSec: sec, runcards }
+    }
 
     case 'TICK': {
       const tanks = { ...state.tanks }
@@ -454,12 +472,11 @@ function moveToRemoved(state, rc, fromTank) {
 function moveToHpw(state, rc, fromTank) {
   let s = state
   if (fromTank) {
-    const d = detachFromTank(s, rc, fromTank)
+    const d = detachFromTank(s, rc, fromTank) // 若倒數中直接拖到 HPW，detach 會判異常並寫出槽紀錄
     s = d.state
-    if (d.abnormal) {
-      // 倒數中直接拖到 HPW 也算異常，但流程仍結束
-    }
   }
+  // 「沒泡完酸就放進 HPW」＝異常（尚未完成任何酸泡：acidSoaked !== true）
+  const early = !s.runcards[rc.id].acidSoaked
   // 進 HPW → 流程結束，解除所有標示 / border
   s = patchRc(s, rc.id, {
     location: 'hpw',
@@ -471,7 +488,11 @@ function moveToHpw(state, rc, fromTank) {
     elapsedSec: null,
     pulledFromTank: null,
   })
-  return { ...s, toast: toast(`${rc.id} 已進入 HPW，流程結束`, `${rc.id} entered HPW — flow complete`, 'ok') }
+  const tm = fmtClock(Date.now())
+  const msg = early
+    ? toast(`${rc.id} 未泡完酸即放入 HPW ${tm} → 異常`, `${rc.id} entered HPW @${tm} before finishing acid soak → ABNORMAL`, 'error')
+    : toast(`${rc.id} 已進入 HPW ${tm}，流程結束`, `${rc.id} entered HPW @${tm} — flow complete`, 'ok')
+  return { ...s, toast: msg }
 }
 
 function moveToTank(state, rc, tankId, fromTank) {
