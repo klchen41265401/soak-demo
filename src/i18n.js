@@ -133,6 +133,7 @@ export const STR = {
   'mon.th.liquid': { zh: '液體', en: 'Liquid' },
   'mon.th.actual': { zh: '實際', en: 'Actual' },
   'mon.th.result': { zh: '結果', en: 'Result' },
+  'mon.th.inTime': { zh: '入槽時間', en: 'In time' },
   'mon.th.outTime': { zh: '出槽時間', en: 'Out time' },
   'mon.st.soaking': { zh: '浸泡中', en: 'Soaking' },
   'mon.st.abnormal': { zh: '異常', en: 'Abnormal' },

@@ -6,6 +6,8 @@ const fmt = (s) => {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
 }
 const clock = (ts) => (ts ? new Date(ts).toLocaleTimeString('zh-TW', { hour12: false }) : '--:--:--')
+// 出/入槽時間：只到「分」
+const clockMin = (ts) => (ts ? new Date(ts).toLocaleTimeString('zh-TW', { hour12: false, hour: '2-digit', minute: '2-digit' }) : '--:--')
 const NEAR = 8
 
 export default function MonitorPage() {
@@ -53,7 +55,7 @@ export default function MonitorPage() {
           <thead>
             <tr>
               <th>{t('mon.th.runcard')}</th><th>{t('mon.th.pnsn')}</th><th>{t('mon.th.liquid')}</th><th>{t('mon.th.req')}</th>
-              <th>{t('mon.th.actual')}</th><th>{t('mon.th.result')}</th><th>{t('mon.th.outTime')}</th>
+              <th>{t('mon.th.actual')}</th><th>{t('mon.th.result')}</th><th>{t('mon.th.inTime')}</th><th>{t('mon.th.outTime')}</th>
             </tr>
           </thead>
           <tbody>{state.records.map((r) => <RecordRow key={r.id} r={r} />)}</tbody>
@@ -136,7 +138,8 @@ function RecordRow({ r }) {
       <td data-l="Req"><span className="mon-num">{fmt(r.reqSec)}</span></td>
       <td data-l="Actual"><span className="mon-num">{fmt(r.actualSec)}</span>{r.overtimeSec > 0 ? <span className="mon-ot"> +{fmt(r.overtimeSec)}</span> : null}</td>
       <td data-l="Result"><span className={'mon-res ' + m.cls}>{m.txt}</span></td>
-      <td data-l="Out"><span className="dim mono">{clock(r.out)}</span></td>
+      <td data-l="In"><span className="dim mono">{clockMin(r.enter)}</span></td>
+      <td data-l="Out"><span className="dim mono">{clockMin(r.out)}</span></td>
     </tr>
   )
 }

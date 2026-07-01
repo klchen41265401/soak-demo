@@ -92,9 +92,10 @@
 
 ### 4.3 出槽紀錄 Record（規則 5，稽核用）
 - `rc / pn / sn / acid`：零件與所泡液體。
-- `reqSec / actualSec / overtimeSec`：要求 / 實際 / 超時。
+- `reqSec / actualSec / overtimeSec`：要求 / 實際 / 超時（秒）。
 - `result`：`pass` 達標 / `over` 超時 / `abnormal` 異常 / `rinse` PW 完成。
-- `out`：出槽時間。
+- `enter / out`：**入槽 / 出槽時間，記錄到「分」**（HH:MM，不記錄到秒）。
+- 註：入槽與出槽事件另會寫入操作紀錄 (Log)，時間同樣到「分」。
 
 ---
 

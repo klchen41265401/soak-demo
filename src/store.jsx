@@ -62,6 +62,7 @@ function makeTank(id, label, benchId) {
     runcardId: null,
     totalSec: null, // 要求浸泡秒（目標）
     elapsedSec: null, // 已計時秒（正常往上計時，超時不停）
+    enterTs: null, // 入槽時間戳（記錄到分）
     status: 'idle', // idle | running（未達標）| over（已達標/超時）
     abnormal: false, // 未達標即被取出 → 異常
   }
@@ -72,6 +73,9 @@ const fmtSec = (s) => {
   s = Math.max(0, Math.round(s || 0))
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
 }
+// 出/入槽時間：只到「分」HH:MM
+const fmtClock = (ts) =>
+  ts ? new Date(ts).toLocaleTimeString('zh-TW', { hour12: false, hour: '2-digit', minute: '2-digit' }) : '--:--'
 // 判定到「分」：達標後給 1 分鐘寬限（可取出/綠），超過 1 分鐘才算超時（紅）
 export const OVER_GRACE = 60
 const tankStatus = (elapsed, total) =>
@@ -315,9 +319,10 @@ function detachFromTank(state, rc, fromTank) {
   const isOver = rawOver >= OVER_GRACE // 只有超過 1 分鐘才算超時（1 分鐘內視為達標）
   const overtimeSec = isOver ? rawOver : 0
   const wasAbnormal = underTime || rc.abnormal // 本次未達標取出，或本來就帶異常歷史
+  const outTs = Date.now() // 出槽時間（記錄到分）
   // 紀錄：出槽（判定到「分」寬限）
   const record = {
-    id: rc.id + '@' + Date.now() + Math.random(),
+    id: rc.id + '@' + outTs + Math.random(),
     rc: rc.id,
     pn: rc.pn,
     sn: rc.sn,
@@ -326,22 +331,24 @@ function detachFromTank(state, rc, fromTank) {
     actualSec: elapsed,
     overtimeSec,
     result: wasAbnormal ? 'abnormal' : isOver ? 'over' : t.acid === PW ? 'rinse' : 'pass',
-    out: state.nowTs,
+    enter: t.enterTs, // 入槽時間
+    out: outTs, // 出槽時間
   }
-  const newTank = { ...t, runcardId: null, status: 'idle', elapsedSec: null, totalSec: null, abnormal: false }
+  const newTank = { ...t, runcardId: null, status: 'idle', elapsedSec: null, totalSec: null, enterTs: null, abnormal: false }
   let newState = {
     ...setTank(state, fromTank, newTank),
     records: [record, ...state.records],
   }
-  // 超時取出 → 直接寫一筆 log（記錄超時多久）
-  if (overtimeSec > 0) {
-    const ts = state.nowTs || 0
+  // 出槽 log（含出槽時間到分）；超時另附超時時長
+  {
+    const outMin = fmtClock(outTs)
+    const otTxt = overtimeSec > 0 ? `，超時 ${fmtSec(overtimeSec)}` : ''
     const entry = {
-      id: 'ot-' + ++otSeq,
-      ts,
-      zh: `${rc.id} 超時 ${fmtSec(overtimeSec)} 後取出（要求 ${fmtSec(total)}，實際 ${fmtSec(elapsed)}）`,
-      en: `${rc.id} removed ${fmtSec(overtimeSec)} over limit (req ${fmtSec(total)}, actual ${fmtSec(elapsed)})`,
-      type: 'error',
+      id: 'out-' + ++otSeq,
+      ts: outTs,
+      zh: `${rc.id} 出槽 ${t.label} ${outMin}（實際 ${fmtSec(elapsed)}${otTxt}）`,
+      en: `${rc.id} left ${t.label} @${outMin} (actual ${fmtSec(elapsed)}${overtimeSec > 0 ? `, over ${fmtSec(overtimeSec)}` : ''})`,
+      type: overtimeSec > 0 || wasAbnormal ? 'error' : 'ok',
     }
     newState = { ...newState, logs: [...newState.logs, entry] }
   }
@@ -483,21 +490,24 @@ function moveToTank(state, rc, tankId, fromTank) {
   const resume = rcNow.elapsedSec != null
   const elapsed = resume ? rcNow.elapsedSec : 0
   const carryAbnormal = !!rcNow.abnormal
+  const enterTs = Date.now() // 入槽時間（記錄到分）
   const newTank = {
     ...getTank(s, tankId),
     runcardId: rc.id,
     totalSec: rcNow.soakSec,
     elapsedSec: elapsed,
+    enterTs,
     status: tankStatus(elapsed, rcNow.soakSec),
     abnormal: carryAbnormal, // 異常提示跟著零件，繼續顯示
   }
   s = setTank(s, tankId, newTank)
   s = patchRc(s, rc.id, { location: tankId, elapsedSec: null, pulledFromTank: null }) // 已計時秒交給 Tank；回到槽內 → 清除「請放回」
+  const tm = fmtClock(enterTs)
   const msg = resume
     ? carryAbnormal
-      ? toast(`${rc.id} 放入 ${tank.label}，接續計時（異常提示中）`, `${rc.id} resumed in ${tank.label} (abnormal flagged)`, 'warn')
-      : toast(`${rc.id} 放入 ${tank.label}，接續計時`, `${rc.id} resumed in ${tank.label}`, 'ok')
-    : toast(`${rc.id} 已放入 ${tank.label}，開始計時`, `${rc.id} placed in ${tank.label} — timing`, 'ok')
+      ? toast(`${rc.id} 入槽 ${tank.label} ${tm}，接續計時（異常）`, `${rc.id} in ${tank.label} @${tm}, resumed (abnormal)`, 'warn')
+      : toast(`${rc.id} 入槽 ${tank.label} ${tm}，接續計時`, `${rc.id} in ${tank.label} @${tm}, resumed`, 'ok')
+    : toast(`${rc.id} 入槽 ${tank.label} ${tm}，開始計時`, `${rc.id} in ${tank.label} @${tm} — timing`, 'ok')
   return { ...s, toast: msg }
 }
 

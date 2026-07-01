@@ -143,7 +143,7 @@ function LogPanel({ onClose }) {
   const { state, dispatch } = useStore()
   const { t, lang } = useT()
   const [copied, setCopied] = useState(false)
-  const fmtTime = (ts) => (ts ? new Date(ts).toLocaleTimeString('zh-TW', { hour12: false }) : '--:--:--')
+  const fmtTime = (ts) => (ts ? new Date(ts).toLocaleTimeString('zh-TW', { hour12: false, hour: '2-digit', minute: '2-digit' }) : '--:--')
   const esc = (s) => String(s).replace(/\|/g, '\\|')
   const rows = [...state.logs].reverse() // 新到舊
 
