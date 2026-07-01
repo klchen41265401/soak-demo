@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { DndContext, PointerSensor, useSensor, useSensors, DragOverlay } from '@dnd-kit/core'
 import { useStore, useT, COLORS, PW } from './store.jsx'
+import handoffMd from '../HANDOFF_soak_line.md?raw'
 import LinePage from './pages/LinePage.jsx'
 import OperatorPage from './pages/OperatorPage.jsx'
 import MonitorPage from './pages/MonitorPage.jsx'
@@ -54,6 +55,7 @@ export default function App() {
   const [activeId, setActiveId] = useState(null)
   const [showLog, setShowLog] = useState(false)
   const [showHelp, setShowHelp] = useState(false)
+  const [showRules, setShowRules] = useState(false)
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
 
   // toast 自動消失
@@ -94,6 +96,9 @@ export default function App() {
           <button className="help-btn" onClick={() => setShowHelp(true)} title={t('btn.help')} aria-label="help">
             ?
           </button>
+          <button className="rules-btn" onClick={() => setShowRules(true)}>
+            📋 {t('btn.rules')}
+          </button>
           <button className="log-btn" onClick={() => setShowLog(true)}>
             ▤ {t('btn.log')}{state.logs.length ? ` (${state.logs.length})` : ''}
           </button>
@@ -110,6 +115,7 @@ export default function App() {
 
         {showLog && <LogPanel onClose={() => setShowLog(false)} />}
         {showHelp && <HelpModal tab={tab} onClose={() => setShowHelp(false)} />}
+        {showRules && <RulesModal onClose={() => setShowRules(false)} />}
 
         <main className={'page page-' + tab}>
           {tab === 'line' && <LinePage />}
@@ -218,6 +224,91 @@ function LogPanel({ onClose }) {
             </table>
           )}
         </div>
+      </div>
+    </div>
+  )
+}
+
+/* ---- 迷你 Markdown 渲染（供業務規則交接文件在網頁內顯示）---- */
+function mdInline(text, kb) {
+  const nodes = []
+  let rest = text
+  let key = 0
+  const re = /(\*\*(.+?)\*\*|`([^`]+)`)/
+  let m
+  while ((m = rest.match(re))) {
+    if (m.index > 0) nodes.push(rest.slice(0, m.index))
+    if (m[2] !== undefined) nodes.push(<b key={kb + '-' + key++}>{m[2]}</b>)
+    else nodes.push(<code key={kb + '-' + key++}>{m[3]}</code>)
+    rest = rest.slice(m.index + m[0].length)
+  }
+  if (rest) nodes.push(rest)
+  return nodes
+}
+
+function renderMarkdown(md) {
+  const lines = md.split('\n')
+  const out = []
+  let i = 0
+  let k = 0
+  const parseRow = (r) => r.trim().replace(/^\||\|$/g, '').split('|').map((c) => c.trim())
+  while (i < lines.length) {
+    const line = lines[i]
+    if (/^\s*$/.test(line)) { i++; continue }
+    if (/^\s*---+\s*$/.test(line)) { out.push(<hr key={k++} />); i++; continue }
+    const h = line.match(/^(#{1,4})\s+(.*)$/)
+    if (h) {
+      const L = h[1].length
+      const Tag = 'h' + Math.min(L + 1, 6)
+      out.push(<Tag key={k++} className={'md-h md-h' + L}>{mdInline(h[2], 'h' + k)}</Tag>)
+      i++
+      continue
+    }
+    if (/^\s*>/.test(line)) {
+      const buf = []
+      while (i < lines.length && /^\s*>/.test(lines[i])) { buf.push(lines[i].replace(/^\s*>\s?/, '')); i++ }
+      out.push(<blockquote key={k++} className="md-quote">{mdInline(buf.join(' '), 'q' + k)}</blockquote>)
+      continue
+    }
+    if (/^\s*\|.*\|\s*$/.test(line)) {
+      const rows = []
+      while (i < lines.length && /^\s*\|.*\|\s*$/.test(lines[i])) { rows.push(lines[i]); i++ }
+      const header = parseRow(rows[0])
+      const body = rows.slice(2).map(parseRow)
+      out.push(
+        <table key={k++} className="md-table">
+          <thead><tr>{header.map((c, j) => <th key={j}>{mdInline(c, 'th' + k + j)}</th>)}</tr></thead>
+          <tbody>{body.map((r, ri) => <tr key={ri}>{r.map((c, j) => <td key={j}>{mdInline(c, 't' + k + ri + j)}</td>)}</tr>)}</tbody>
+        </table>,
+      )
+      continue
+    }
+    if (/^\s*[-•]\s+/.test(line)) {
+      const items = []
+      while (i < lines.length && /^\s*[-•]\s+/.test(lines[i])) { items.push(lines[i].replace(/^\s*[-•]\s+/, '')); i++ }
+      out.push(<ul key={k++} className="md-ul">{items.map((it, j) => <li key={j}>{mdInline(it, 'li' + k + j)}</li>)}</ul>)
+      continue
+    }
+    // paragraph
+    const para = []
+    while (i < lines.length && !/^\s*$/.test(lines[i]) && !/^\s*[|>#-]/.test(lines[i]) && !/^\s*•/.test(lines[i])) { para.push(lines[i]); i++ }
+    out.push(<p key={k++} className="md-p">{mdInline(para.join(' '), 'p' + k)}</p>)
+  }
+  return out
+}
+
+function RulesModal({ onClose }) {
+  const { t } = useT()
+  return (
+    <div className="log-overlay" onClick={onClose}>
+      <div className="log-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="log-head">
+          <div className="log-title">📋 {t('btn.rules')}</div>
+          <div className="log-actions">
+            <button className="log-act log-close" onClick={onClose}>✕ {t('log.close')}</button>
+          </div>
+        </div>
+        <div className="md-view">{renderMarkdown(handoffMd)}</div>
       </div>
     </div>
   )

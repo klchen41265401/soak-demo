@@ -111,6 +111,28 @@ button:focus-visible, .draggable:focus-visible { outline: none; box-shadow: var(
 }
 .log-btn:hover { background: var(--ink); color: #fff; border-color: var(--ink); }
 .log-btn:active { transform: translateY(1px); }
+.rules-btn {
+  font-family: var(--mono); font-size: 16.5px; font-weight: 700; padding: 9px 15px; cursor: pointer; white-space: nowrap;
+  background: var(--surface); color: var(--ink-2); border: 1px solid var(--border-strong); border-radius: var(--r-md); transition: .12s ease;
+}
+.rules-btn:hover { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+.rules-btn:active { transform: translateY(1px); }
+
+/* markdown 檢視（業務規則交接文件）*/
+.md-view { flex: 1; overflow-y: auto; padding: 20px clamp(18px, 3vw, 40px) 40px; line-height: 1.7; color: var(--ink); }
+.md-view .md-h { font-weight: 700; line-height: 1.3; }
+.md-view .md-h1 { font-size: 26px; margin: 4px 0 14px; }
+.md-view .md-h2 { font-size: 21px; margin: 26px 0 10px; padding-bottom: 6px; border-bottom: 2px solid var(--border-strong); }
+.md-view .md-h3 { font-size: 18px; margin: 18px 0 8px; color: var(--brand-2); }
+.md-view .md-p { font-size: 15.5px; margin: 8px 0; }
+.md-view .md-ul { margin: 8px 0 8px 4px; padding-left: 22px; }
+.md-view .md-ul li { font-size: 15.5px; margin: 5px 0; }
+.md-view .md-quote { border-left: 3px solid var(--brand); background: var(--surface-2); padding: 10px 14px; margin: 12px 0; color: var(--ink-2); font-size: 14.5px; border-radius: 0 var(--r-sm) var(--r-sm) 0; }
+.md-view code { font-family: var(--mono); background: var(--surface-3); padding: 1px 6px; border-radius: var(--r-sm); font-size: .92em; }
+.md-view hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+.md-table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 14.5px; }
+.md-table th, .md-table td { border: 1px solid var(--border-strong); padding: 8px 12px; text-align: left; vertical-align: top; }
+.md-table th { background: var(--surface-3); font-weight: 700; }
 .theme-btn {
   font-family: var(--mono); font-size: 16.5px; font-weight: 700; padding: 9px 15px; cursor: pointer; white-space: nowrap;
   background: var(--surface); color: var(--ink-2); border: 1px solid var(--border-strong); border-radius: var(--r-md); transition: .12s ease;
