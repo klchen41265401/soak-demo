@@ -16,6 +16,12 @@ export const STR = {
   'btn.log': { zh: '紀錄', en: 'Log' },
   'btn.toDark': { zh: '夜間', en: 'Night' }, // 按鈕顯示「切換到的模式」
   'btn.toLight': { zh: '日間', en: 'Day' },
+  'btn.help': { zh: '本頁說明', en: 'What is this page?' },
+
+  // 首次進站引導
+  'coach.title': { zh: '從這裡開始 👇', en: 'Start here 👇' },
+  'coach.body': { zh: '抓一張 Runcard 拖到 Signin，開始整個流程', en: 'Grab a runcard and drop it on Signin to begin' },
+  'coach.dismiss': { zh: '知道了', en: 'Got it' },
 
   // ---- log panel ----
   'log.title': { zh: '操作紀錄', en: 'Activity Log' },

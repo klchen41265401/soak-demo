@@ -11,12 +11,49 @@ const TABS = [
   { key: 'monitor', k: 'nav.monitor' },
 ]
 
+// 各分頁說明（點「?」開啟）
+const HELP = {
+  line: {
+    title: { zh: '產線俯視圖 — 模擬 RFID 產線流動', en: 'Line Map — simulate the RFID line' },
+    steps: [
+      { zh: '這一頁模擬「把貼了 RFID 的 Runcard 抓過去、投進各站」，全部用拖曳完成。', en: 'This page simulates grabbing an RFID-tagged runcard and dropping it into each station — all by dragging.' },
+      { zh: '① 從右側「Runcard 待處理」抓一張卡 → 拖到 Signin 簽入。', en: '① Grab a card from “Runcards” on the right → drop on Signin.' },
+      { zh: '② 從 Signin 拖到 IQC 檢驗。流程單向，不能回頭或跳站。', en: '② From Signin drag to IQC. The flow is one-way — no going back or skipping.' },
+      { zh: '③ 從酸種瓶把 酸 / PW 倒進 Tank 的 Acid/PW 區（酸種要和卡片規格相符；PW 槽需先泡過酸）。', en: '③ Pour an acid / PW bottle into a tank’s Acid/PW slot (acid must match the card; a PW tank needs a prior acid soak).' },
+      { zh: '④ 把完成 Signin+IQC 的卡拖進 Tank 綠色區 → 開始計時（達標後不停，會超時轉紅）。', en: '④ Drop a Signin+IQC card into a tank’s green slot → timing starts (keeps running into overtime, turns red).' },
+      { zh: '⑤ 倒數中被拉出＝異常，現場螢幕會叫人放回；最後拖進 HPW 結束、清除所有標記。', en: '⑤ Pulled out mid-timing = abnormal (operator screen asks to return it). Finish by dropping into HPW — clears all marks.' },
+      { zh: 'Tank 可用左上握把 ⠿ 在 Soak Bench 1 / 2 之間拖動；移出區用來暫放被取出的卡。', en: 'Drag a tank between Soak Bench 1 / 2 by its ⠿ grip; the Removal Zone holds pulled-out cards.' },
+      { zh: '拖曳時全畫面變暗，只有「可以放入的地方」會亮起引導你。', en: 'While dragging, the screen dims and only valid drop targets light up to guide you.' },
+    ],
+  },
+  operator: {
+    title: { zh: '現場螢幕 — Tank 前的作業顯示', en: 'Operator Screen — display in front of the tank' },
+    steps: [
+      { zh: '放在 Tank 前給作業員看零件狀態；資料由產線俯視圖即時帶入。', en: 'Sits in front of a tank for the operator; data comes live from the Line Map.' },
+      { zh: '大字＝已計時時間；達到要求後進入「超時」並轉紅。', en: 'Big number = elapsed time; after the target it goes “over” and turns red.' },
+      { zh: '「請放入 RC-xxx」＝排班提示該把哪一張卡放進來。', en: '“Please place RC-xxx” = schedule prompt for which card to load.' },
+      { zh: '「未偵測到 Tag・請放回」＝有卡在倒數中被取出、還沒放回。', en: '“Tag not detected — return part” = a card was pulled mid-timing and not returned.' },
+      { zh: '右欄顯示 Soak Bench / Tank / 液體 / 現在時間 與零件 PN/SN；可切換 Tank A/B、左右對調兩區。', en: 'Right column shows Bench / Tank / liquid / time and PN/SN; switch Tank A/B and swap the two panels.' },
+    ],
+  },
+  monitor: {
+    title: { zh: '監控站 — 即時監控牆', en: 'Monitor — live monitoring wall' },
+    steps: [
+      { zh: '以酸桶為單位的即時監控；上方切換要看的槽。', en: 'Per-tank live monitoring; switch the tank at the top.' },
+      { zh: '表格顯示槽內零件的 要求 / 已計時 / 進度 / 狀態；超時與異常標紅。', en: 'The table shows required / elapsed / progress / status; overtime and abnormal are flagged red.' },
+      { zh: '頂部橫幅彙總異常與「被取出未放回」的零件數。', en: 'The top banner summarizes abnormal and pulled-out-not-returned parts.' },
+      { zh: '下方「出槽紀錄」記錄每次離槽結果（達標 / 超時 / 異常）。', en: 'The “Left-tank records” below log every removal result (pass / over / abnormal).' },
+    ],
+  },
+}
+
 export default function App() {
   const { state, dispatch } = useStore()
   const { t, lang } = useT()
   const [tab, setTab] = useState('line')
   const [activeId, setActiveId] = useState(null)
   const [showLog, setShowLog] = useState(false)
+  const [showHelp, setShowHelp] = useState(false)
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
 
   // toast 自動消失
@@ -54,6 +91,9 @@ export default function App() {
               </button>
             ))}
           </nav>
+          <button className="help-btn" onClick={() => setShowHelp(true)} title={t('btn.help')} aria-label="help">
+            ?
+          </button>
           <button className="log-btn" onClick={() => setShowLog(true)}>
             ▤ {t('btn.log')}{state.logs.length ? ` (${state.logs.length})` : ''}
           </button>
@@ -69,6 +109,7 @@ export default function App() {
         </header>
 
         {showLog && <LogPanel onClose={() => setShowLog(false)} />}
+        {showHelp && <HelpModal tab={tab} onClose={() => setShowHelp(false)} />}
 
         <main className={'page page-' + tab}>
           {tab === 'line' && <LinePage />}
@@ -176,6 +217,30 @@ function LogPanel({ onClose }) {
               </tbody>
             </table>
           )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function HelpModal({ tab, onClose }) {
+  const { t, lang } = useT()
+  const h = HELP[tab]
+  return (
+    <div className="log-overlay" onClick={onClose}>
+      <div className="help-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="log-head">
+          <div className="log-title">❓ {h.title[lang]}</div>
+          <div className="log-actions">
+            <button className="log-act log-close" onClick={onClose}>✕ {t('log.close')}</button>
+          </div>
+        </div>
+        <div className="help-body">
+          <ol className="help-steps">
+            {h.steps.map((s, i) => (
+              <li key={i}>{s[lang]}</li>
+            ))}
+          </ol>
         </div>
       </div>
     </div>

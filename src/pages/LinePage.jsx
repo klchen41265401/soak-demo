@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useStore, useT, COLORS, ALL_LIQUIDS, PW, scheduledRuncardFor, tanksInBench } from '../store.jsx'
 import { Droppable, RuncardChip, AcidChip, TankAcidBottle, TankHandle } from '../components/dnd.jsx'
 
@@ -10,7 +11,11 @@ const fmt = (s) => {
 export default function LinePage() {
   const { state } = useStore()
   const { t } = useT()
+  const [coachOff, setCoachOff] = useState(false)
   const at = (loc) => state.order.map((id) => state.runcards[id]).filter((r) => r.location === loc)
+  // 首次引導：還沒有任何卡離開待處理區時顯示
+  const started = state.order.some((id) => state.runcards[id].location !== 'pool')
+  const showCoach = !coachOff && !started
   const poolCards = at('pool')
   const hpwCards = at('hpw')
   const signinCards = at('signin')
@@ -70,8 +75,15 @@ export default function LinePage() {
 
         {/* Runcard pool + Acid tray + Removal zone */}
         <div className="tray-col">
-          <Droppable id="zone:pool" accept={['rc']} className="runcard-pool">
+          <Droppable id="zone:pool" accept={['rc']} className={'runcard-pool' + (showCoach ? ' coaching' : '')}>
             <div className="tray-title">{t('pool.title')}</div>
+            {showCoach && (
+              <div className="coach">
+                <div className="coach-title">{t('coach.title')}</div>
+                <div className="coach-body">{t('coach.body')}</div>
+                <button className="coach-dismiss" onClick={() => setCoachOff(true)}>{t('coach.dismiss')}</button>
+              </div>
+            )}
             <div className="pool-list">
               {poolCards.length === 0 && <div className="pool-empty">{t('pool.empty')}</div>}
               {poolCards.map((rc) => (
