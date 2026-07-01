@@ -7,27 +7,49 @@ import { tr } from './i18n.js'
  *  RESET → 一鍵回到 makeInitialState() 的最原始狀態。
  * ========================================================================= */
 
-/* ---- 常數 Constants ---- */
-export const ACID_TYPES = ['STM-14', 'STM-31', 'STM-07'] // 酸種
+/* ---- 酸種資料庫（取自 acid schema：acid_names / recipes / recipe_components / raw_materials / ip_owners）----
+ * code=酸代號、name=配方(recipe.display_name)、type=material_type、owner=ip_owner、components=成分 */
+export const ACID_INFO = {
+  'CLM-31': {
+    name: '0.1% HF + 20% HNO₃ + 79.9% DIW', type: 'Metal', owner: 'LeanTeq', color: '#0f9d8f',
+    components: [{ m: 'HF', a: '0.1%' }, { m: 'HNO₃', a: '20%' }, { m: 'DIW', a: '79.9%' }],
+  },
+  'STM-28': {
+    name: '0.1% HF + 20% HNO₃ + 79.9% DIW', type: 'Metal', owner: 'AMAT', color: '#7c3aed',
+    components: [{ m: 'HF', a: '0.1%' }, { m: 'HNO₃', a: '20%' }, { m: 'DIW', a: '79.9%' }],
+  },
+  'CLQ-25': {
+    name: '0.25% HNO₃ + 99.75% DIW', type: 'Quartz', owner: 'AMAT', color: '#0284c7',
+    components: [{ m: 'HNO₃', a: '0.25%' }, { m: 'DIW', a: '99.75%' }],
+  },
+  'CLM-32': {
+    name: '0.5% HF + 1% HNO₃ + 20% H₂O₂ + 78.5% DIW', type: 'Metal', owner: 'AMAT', color: '#c026d3',
+    components: [{ m: 'HF', a: '0.5%' }, { m: 'HNO₃', a: '1%' }, { m: 'H₂O₂', a: '20%' }, { m: 'DIW', a: '78.5%' }],
+  },
+  PW: {
+    name: '超純水 Ultra-pure water', type: 'Rinse', owner: '—', color: '#06b6d4',
+    components: [{ m: 'DIW', a: '100%' }],
+  },
+}
+export const acidInfo = (code) => ACID_INFO[code] || null
+
 export const PW = 'PW' // 超純水 ultra-pure water
+export const ACID_TYPES = Object.keys(ACID_INFO).filter((c) => c !== PW) // 酸種（不含 PW）
 export const ALL_LIQUIDS = [...ACID_TYPES, PW]
 
-// 顏色：signin / iqc 邊框疊加色、各液體色
+// 顏色：signin / iqc 邊框疊加色 + 各液體色（由 ACID_INFO 帶入）
 export const COLORS = {
   signin: '#ef4444', // signin 紅
   iqc: '#f59e0b', // iqc 琥珀
-  'STM-14': '#0f9d8f', // teal
-  'STM-31': '#7c3aed', // violet
-  'STM-07': '#0284c7', // sky
-  PW: '#06b6d4', // cyan
+  ...Object.fromEntries(Object.entries(ACID_INFO).map(([c, v]) => [c, v.color])),
 }
 
 // 零件規格庫（依 PN 帶回酸種 / 浸泡秒數；demo 已加速）
 const PART_DB = {
-  'PN-AX5074': { acid: 'STM-14', soakSec: 30, name: 'AMAX-5074 噴淋盤 Spray Plate' },
-  'PN-RING332': { acid: 'STM-14', soakSec: 24, name: 'Edge Ring 邊環' },
-  'PN-SH2210': { acid: 'STM-31', soakSec: 40, name: 'Showerhead 噴淋頭' },
-  'PN-LID0488': { acid: 'STM-07', soakSec: 34, name: 'Lid 蓋板' },
+  'PN-AX5074': { acid: 'CLM-31', soakSec: 30, name: 'AMAX-5074 噴淋盤 Spray Plate' },
+  'PN-RING332': { acid: 'STM-28', soakSec: 24, name: 'Edge Ring 邊環' },
+  'PN-SH2210': { acid: 'CLQ-25', soakSec: 40, name: 'Showerhead 噴淋頭' },
+  'PN-LID0488': { acid: 'CLM-32', soakSec: 34, name: 'Lid 蓋板' },
 }
 
 let snSeq = 386000

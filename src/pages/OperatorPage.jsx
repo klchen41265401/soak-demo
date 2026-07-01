@@ -1,4 +1,4 @@
-import { useStore, useT, COLORS, PW, scheduledRuncardFor, pulledAlertFor, tanksInBench } from '../store.jsx'
+import { useStore, useT, COLORS, PW, acidInfo, scheduledRuncardFor, pulledAlertFor, tanksInBench } from '../store.jsx'
 
 const fmt = (s) => {
   if (s == null) return '--:--'
@@ -54,6 +54,7 @@ function OpTank({ tank }) {
   const scheduled = pulled ? null : scheduledRuncardFor(state, tank.id)
   const part = rc || pulled || scheduled
   const liquidColor = tank.acid ? COLORS[tank.acid] : '#94a3b8'
+  const info = tank.acid ? acidInfo(tank.acid) : null
   const overtime = tank.totalSec != null ? Math.max(0, (tank.elapsedSec || 0) - tank.totalSec) : 0
   const abnormal = tank.abnormal
 
@@ -70,14 +71,22 @@ function OpTank({ tank }) {
       <div className="op2-tank-head">
         <span className="op2-tank-name">{tank.label}</span>
         {tank.acid ? (
-          <span className="op2-acid" style={{ background: liquidColor }}>
-            {tank.acid} {tank.acid === PW ? t('suffix.pw') : t('suffix.acid')}
-          </span>
+          <span className="op2-acid" style={{ background: liquidColor }}>{tank.acid}</span>
         ) : (
           <span className="op2-acid empty">{t('tank.dropLiquid')}</span>
         )}
         <span className="op2-total">{t('op.total')} {fmt(tank.totalSec)}</span>
       </div>
+
+      {tank.acid && info && (
+        <div className="op2-acidinfo">
+          <div className="op2-formula">{info.name}</div>
+          <div className="op2-acidmeta">
+            <span className="op2-tag">{info.type}</span>
+            <span className="op2-owner">{t('acid.owner')} {info.owner}</span>
+          </div>
+        </div>
+      )}
 
       <div className="op2-tank-body">
         {abnormal && <div className="op2-banner">⚠ {t('op.abnStatus')}</div>}

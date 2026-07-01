@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useStore, useT, COLORS, ALL_LIQUIDS, PW, scheduledRuncardFor, tanksInBench } from '../store.jsx'
+import { useStore, useT, COLORS, ALL_LIQUIDS, PW, acidInfo, scheduledRuncardFor, tanksInBench } from '../store.jsx'
 import { Droppable, RuncardChip, AcidChip, TankAcidBottle, TankHandle } from '../components/dnd.jsx'
 
 const fmt = (s) => {
@@ -145,8 +145,8 @@ function TankCard({ tank }) {
         <TankHandle tankId={tank.id} />
         <span className="tank-name">{tank.label}</span>
         {tank.acid && (
-          <span className="tank-acid-badge" style={{ background: liquidColor }}>
-            {tank.acid} {tank.acid === PW ? t('suffix.pw') : t('suffix.acid')}
+          <span className="tank-acid-badge" style={{ background: liquidColor }} title={acidInfo(tank.acid)?.name}>
+            {tank.acid}{tank.acid === PW ? ' ' + t('suffix.pw') : ''}
           </span>
         )}
         {tank.abnormal && <span className="tank-flag-abn">⚠ {t('tank.abnormal')}</span>}
@@ -211,10 +211,11 @@ function Legend() {
     <div className="legend">
       <span className="lg"><i style={{ background: COLORS.signin }} /> {t('legend.signin')}</span>
       <span className="lg"><i style={{ background: COLORS.iqc }} /> {t('legend.iqc')}</span>
-      <span className="lg"><i style={{ background: COLORS['STM-14'] }} /> STM-14</span>
-      <span className="lg"><i style={{ background: COLORS['STM-31'] }} /> STM-31</span>
-      <span className="lg"><i style={{ background: COLORS['STM-07'] }} /> STM-07</span>
-      <span className="lg"><i style={{ background: COLORS.PW }} /> {t('legend.pw')}</span>
+      {ALL_LIQUIDS.map((l) => (
+        <span className="lg" key={l} title={acidInfo(l)?.name}>
+          <i style={{ background: COLORS[l] }} /> {l === PW ? t('legend.pw') : l}
+        </span>
+      ))}
       <span className="lg-note">{t('legend.flow')}</span>
     </div>
   )

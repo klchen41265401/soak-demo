@@ -1,5 +1,5 @@
 import { useDraggable, useDroppable } from '@dnd-kit/core'
-import { COLORS, PW, useT, useStore, canDrop } from '../store.jsx'
+import { COLORS, PW, useT, useStore, canDrop, acidInfo } from '../store.jsx'
 
 /* 可拖曳包裝 Draggable */
 export function Draggable({ id, children, disabled, data }) {
@@ -87,12 +87,13 @@ export function AcidChip({ liquid }) {
   const { t } = useT()
   const color = COLORS[liquid]
   const isPw = liquid === PW
+  const info = acidInfo(liquid)
   return (
     <Draggable id={'acid:' + liquid}>
-      <div className="acid-chip" style={{ borderColor: color }}>
+      <div className="acid-chip" style={{ borderColor: color }} title={info ? info.name : ''}>
         <span className="acid-cap" style={{ background: color }} />
         <span className="acid-name">{liquid}</span>
-        <span className="acid-sub">{isPw ? t('suffix.pw') : t('suffix.acid')}</span>
+        <span className="acid-sub">{isPw ? t('suffix.pw') : info ? info.type : t('suffix.acid')}</span>
       </div>
     </Draggable>
   )
@@ -103,12 +104,13 @@ export function TankAcidBottle({ tankId, liquid, disabled }) {
   const { t } = useT()
   const color = COLORS[liquid]
   const isPw = liquid === PW
+  const info = acidInfo(liquid)
   return (
     <Draggable id={'tankacid:' + tankId} disabled={disabled}>
-      <div className="acid-bottle-in" style={{ borderColor: color }}>
+      <div className="acid-bottle-in" style={{ borderColor: color }} title={info ? info.name : ''}>
         <span className="acid-cap" style={{ background: color }} />
         <span className="acid-bottle-name">{liquid}</span>
-        <span className="acid-bottle-sub">{isPw ? t('suffix.pw') : t('suffix.acid')}</span>
+        <span className="acid-bottle-sub">{isPw ? t('suffix.pw') : info ? info.type : t('suffix.acid')}</span>
       </div>
     </Draggable>
   )

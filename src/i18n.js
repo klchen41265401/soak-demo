@@ -71,6 +71,9 @@ export const STR = {
   'tank.abnormal': { zh: '異常', en: 'Abnormal' },
   'suffix.acid': { zh: '酸', en: 'Acid' },
   'suffix.pw': { zh: '超純水', en: 'PW Water' },
+  'acid.owner': { zh: '負責', en: 'Owner' },
+  'acid.type': { zh: '材質', en: 'Material' },
+  'acid.formula': { zh: '配方', en: 'Formula' },
   'flag.soaked': { zh: '已泡酸 ✓', en: 'Soaked ✓' },
 
   // ---- legend ----

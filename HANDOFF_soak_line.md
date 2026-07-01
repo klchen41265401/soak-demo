@@ -145,6 +145,10 @@
 - **RFID 事件流（建議 WebSocket / SSE）**：進槽 / 離槽 / 在槽偵測（未偵測到 = 未放回 / 離槽），取代原型的手動拖曳與 `pulledFromTank` 判斷。
 - **上位系統 (Host/MES)**：依 PN/SN 回傳 `{規格酸種, 要求時間}`（規則 4），取代原型的本地查表。找不到 PN 需有明確失敗狀態。
 - **酸桶設定**：`{tankId, benchId, acid}` 來自 MES；換酸時更新並重判錯槽。
+- **酸種主檔（來源：`acid` schema）**：酸代號與配方資訊取自資料庫 `acid` schema：
+  `acid_names`（酸代號 code、material_type、對應 recipe）、`recipes`（配方 display_name）、
+  `recipe_components`＋`raw_materials`（成分：試劑＋百分比）、`ip_owners`＋`acid_name_ip_owners`（負責/核准廠商）。
+  原型已內建數筆真實酸種（如 CLM-31 / STM-28 / CLQ-25 / CLM-32），生產時改為即時查詢此 schema。
 - **紀錄持久化（原型缺，需新增後端）**：離槽 Record 寫入資料庫供稽核 / 報表；最終 result 建議由後端在離槽事件時計算落庫，避免前端時鐘 / 離線造成不一致。
 
 ---

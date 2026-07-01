@@ -1,4 +1,4 @@
-import { useStore, useT, allTanks, COLORS, PW } from '../store.jsx'
+import { useStore, useT, allTanks, COLORS, PW, acidInfo } from '../store.jsx'
 
 const fmt = (s) => {
   if (s == null) return '--:--'
@@ -81,6 +81,7 @@ function MonTank({ tank }) {
   const done = tank.status === 'done'
   const pct = total ? Math.min(100, (elapsed / total) * 100) : 0
   const acidColor = tank.acid ? COLORS[tank.acid] : '#5c748f'
+  const info = tank.acid ? acidInfo(tank.acid) : null
 
   // 被取出未放回？
   const pulled = !rc && Object.values(state.runcards).find((r) => r.abnormal && !r.done && r.pulledFromTank === tank.id && !state.tanks[r.location])
@@ -100,6 +101,7 @@ function MonTank({ tank }) {
         </span>
         <span className="mon-tk-name">{bench.name} · {tank.label}</span>
       </div>
+      {info && <div className="mon-tk-formula">{info.name}{info.type !== 'Rinse' ? ` · ${info.type} · ${info.owner}` : ''}</div>}
 
       {rc ? (
         <div className="mon-tk-body">
