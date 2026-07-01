@@ -91,9 +91,19 @@ export function AcidChip({ liquid }) {
   return (
     <Draggable id={'acid:' + liquid}>
       <div className="acid-chip" style={{ borderColor: color }} title={info ? info.name : ''}>
-        <span className="acid-cap" style={{ background: color }} />
-        <span className="acid-name">{liquid}</span>
-        <span className="acid-sub">{isPw ? t('suffix.pw') : info ? info.type : t('suffix.acid')}</span>
+        <div className="acid-chip-top">
+          <span className="acid-cap" style={{ background: color }} />
+          <span className="acid-name">{liquid}</span>
+          <span className="acid-type">{isPw ? t('suffix.pw') : info ? info.type : t('suffix.acid')}</span>
+        </div>
+        {info && <div className="acid-formula">{info.name}</div>}
+        {info && !isPw && (
+          <div className="acid-comps">
+            {info.components.map((c) => (
+              <span className="acid-comp" key={c.m}>{c.m} {c.a}</span>
+            ))}
+          </div>
+        )}
       </div>
     </Draggable>
   )

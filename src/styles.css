@@ -259,10 +259,14 @@ button:focus-visible, .draggable:focus-visible { outline: none; box-shadow: var(
 
 /* ===================== acid chip ===================== */
 .acid-chip {
-  display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 10px 11px; min-width: 80px;
-  background: var(--surface); border: 1.5px solid; border-radius: var(--r-md);
+  display: block; padding: 9px 11px; background: var(--surface); border: 1.5px solid; border-radius: var(--r-md); text-align: left;
 }
-.acid-name { font-family: var(--mono); font-weight: 700; font-size: 17px; }
+.acid-chip-top { display: flex; align-items: center; gap: 7px; }
+.acid-name { font-family: var(--mono); font-weight: 700; font-size: 15px; }
+.acid-type { margin-left: auto; font-family: var(--mono); font-size: 11.5px; color: var(--ink-3); }
+.acid-formula { font-family: var(--mono); font-size: 11.5px; color: var(--ink-2); margin-top: 5px; line-height: 1.45; }
+.acid-comps { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.acid-comp { font-family: var(--mono); font-size: 10.5px; color: var(--ink-2); background: var(--surface-3); border: 1px solid var(--border); padding: 1px 6px; border-radius: var(--r-sm); }
 .acid-sub { font-size: 13.5px; color: var(--ink-3); }
 
 /* ===================== LINE PAGE ===================== */
@@ -373,7 +377,7 @@ button:focus-visible, .draggable:focus-visible { outline: none; box-shadow: var(
 .tray-title { font-size: 19px; font-weight: 700; margin-bottom: 11px; }
 .pool-list { display: flex; flex-direction: column; gap: 10px; }
 .pool-empty { color: var(--ink-3); font-size: 16px; padding: 6px 0; }
-.acid-list { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+.acid-list { display: flex; flex-direction: column; gap: 8px; }
 .tray-note { font-size: 15px; color: var(--ink-3); margin-top: 11px; line-height: 1.5; }
 
 .removed-zone {
@@ -432,7 +436,10 @@ button:focus-visible, .draggable:focus-visible { outline: none; box-shadow: var(
 .op2-total { margin-left: auto; font-family: var(--mono); font-size: 15px; color: var(--ink-3); }
 .op2-acidinfo { padding: 8px 18px; border-bottom: 1px solid var(--border); background: var(--surface-2); }
 .op2-formula { font-family: var(--mono); font-size: clamp(14px, 1.3vw, 18px); font-weight: 700; color: var(--ink); }
-.op2-acidmeta { display: flex; gap: 10px; align-items: center; margin-top: 4px; font-size: 13px; color: var(--ink-3); flex-wrap: wrap; }
+.op2-comps { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+.op2-comp { font-family: var(--mono); font-size: clamp(12px, 1vw, 14px); color: var(--ink-2); background: var(--surface); border: 1px solid; border-radius: var(--r-sm); padding: 2px 8px; }
+.op2-comp b { color: var(--ink); }
+.op2-acidmeta { display: flex; gap: 10px; align-items: center; margin-top: 6px; font-size: 13px; color: var(--ink-3); flex-wrap: wrap; }
 .op2-tag { font-family: var(--mono); font-weight: 700; color: var(--brand-2); background: var(--brand-soft); border: 1px solid #bfe6e1; padding: 1px 8px; border-radius: var(--r-sm); }
 .op2-owner { font-family: var(--mono); }
 

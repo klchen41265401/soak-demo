@@ -81,6 +81,11 @@ function OpTank({ tank }) {
       {tank.acid && info && (
         <div className="op2-acidinfo">
           <div className="op2-formula">{info.name}</div>
+          <div className="op2-comps">
+            {info.components.map((c) => (
+              <span className="op2-comp" key={c.m} style={{ borderColor: liquidColor }}>{c.m} <b>{c.a}</b></span>
+            ))}
+          </div>
           <div className="op2-acidmeta">
             <span className="op2-tag">{info.type}</span>
             <span className="op2-owner">{t('acid.owner')} {info.owner}</span>
